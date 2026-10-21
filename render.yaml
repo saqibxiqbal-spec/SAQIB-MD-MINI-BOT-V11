@@ -1,0 +1,53 @@
+# SAQIB MD — Render Blueprint
+# One-click deploy: https://render.com/deploy?repo=https://github.com/saqibxiqbal-spec/SAQIB-MD-MINI-BOT-V11
+# Free plan works, but the service sleeps after ~15 min idle (upgrade to Starter for 24/7).
+services:
+  - type: web
+    name: saqib-md
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: MODE
+        value: public          # public = sab use kar sakte hain | private = sirf owner
+      - key: MAX_SESSIONS
+        value: 500             # 500 tak numbers link ho sakte hain
+      - key: BOT_NAME
+        value: SAQIB MD
+      - key: OWNER_NAME
+        value: "I'm Saqib king 👑"
+      - key: OWNER_NUMBER
+        value: "923106762478"
+      - key: CHANNEL_LINK
+        value: ""              # apna WhatsApp channel link daalein
+      - key: GROUP_LINK
+        value: ""              # apna WhatsApp group link daalein
+      # --- saare auto/anti features DEFAULT OFF ---
+      - key: AUTO_READ
+        value: "false"
+      - key: AUTO_TYPING
+        value: "false"
+      - key: AUTO_REACT
+        value: "false"
+      - key: ANTIDELETE
+        value: "false"
+      - key: ANTIDELETE_INBOX
+        value: "false"
+      - key: ANTILINK
+        value: "false"
+      - key: ANTISPAM
+        value: "false"
+      - key: ANTICALL
+        value: "false"
+      - key: CHATBOT
+        value: "false"
+      - key: ONLINE
+        value: "true"
+    disk:
+      name: saqib-sessions
+      mountPath: /app/session
+      sizeGB: 1

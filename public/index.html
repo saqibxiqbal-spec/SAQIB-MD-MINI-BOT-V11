@@ -1,0 +1,475 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#05060a" />
+<title>SAQIB MD BOT • Premium Multi-Session WhatsApp Bot</title>
+<meta name="description" content="SAQIB MD BOT — Premium Multi-Session WhatsApp Bot. Open this page, link up to 50 WhatsApp numbers with an 8-digit pairing code, and the bot goes live instantly." />
+<link rel="icon" href="/assets/bot.jpg" />
+<link rel="apple-touch-icon" href="/assets/bot.jpg" />
+<style>
+  :root{
+    --bg:#05060a; --bg2:#0b0e17; --card:rgba(20,24,38,.72); --line:rgba(120,140,255,.16);
+    --txt:#e8ecff; --muted:#8b93b8; --accent:#7c5cff; --accent2:#22d3ee; --gold:#ffd166;
+    --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    --pad:clamp(14px,4vw,28px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 15% -10%,rgba(124,92,255,.25),transparent 55%),
+               radial-gradient(1000px 600px at 100% 0%,rgba(34,211,238,.18),transparent 50%),
+               radial-gradient(900px 500px at 50% 110%,rgba(255,209,102,.10),transparent 55%),
+               linear-gradient(180deg,var(--bg),var(--bg2));
+    color:var(--txt); min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+    padding:var(--pad) var(--pad) calc(var(--pad) + 40px); overflow-x:hidden;
+    overflow-wrap:anywhere; word-break:break-word;
+  }
+  body.locked{overflow:hidden}
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.5; z-index:0;
+    background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    background-size:44px 44px; mask-image:radial-gradient(circle at 50% 20%,#000 0%,transparent 75%);
+  }
+  .wrap{width:100%; max-width:980px; position:relative; z-index:1}
+
+  /* ---------- header ---------- */
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:clamp(18px,4vw,26px); flex-wrap:wrap}
+  .brand{display:flex; align-items:center; gap:14px; min-width:0}
+  .brand .dp{
+    width:clamp(50px,12vw,60px);height:clamp(50px,12vw,60px);border-radius:18px;flex:none;object-fit:cover;
+    border:2px solid rgba(255,209,102,.55);
+    box-shadow:0 10px 30px rgba(124,92,255,.45), 0 0 0 4px rgba(255,209,102,.10);
+  }
+  .brand h1{font-size:clamp(19px,5.2vw,24px);letter-spacing:.6px;line-height:1.1}
+  .brand h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .brand p{font-size:clamp(11px,3vw,12.5px);color:var(--muted);margin-top:3px}
+  .headright{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:clamp(11px,3vw,12.5px);padding:8px 14px;border-radius:999px;
+    border:1px solid var(--line); background:rgba(255,255,255,.03)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px rgba(245,158,11,.15);flex:none}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 4px rgba(34,197,94,.15)}
+  .dot.off{background:var(--err);box-shadow:0 0 0 4px rgba(239,68,68,.15)}
+
+  /* ---------- hero ---------- */
+  .hero{
+    text-align:center; margin-bottom:clamp(18px,4vw,26px); padding:clamp(20px,5vw,34px) clamp(16px,4vw,28px);
+    background:var(--card); border:1px solid var(--line); border-radius:26px; backdrop-filter:blur(14px);
+    box-shadow:0 24px 60px rgba(0,0,0,.45); position:relative; overflow:hidden;
+  }
+  .hero::after{content:"";position:absolute;inset:-40% -10% auto -10%;height:220px;
+    background:radial-gradient(closest-side,rgba(124,92,255,.35),transparent);filter:blur(20px);z-index:0}
+  .hero>*{position:relative;z-index:1}
+  .hero .bigdp{
+    width:clamp(96px,26vw,132px);height:clamp(96px,26vw,132px);border-radius:34px;object-fit:cover;margin:0 auto 16px;display:block;
+    border:3px solid rgba(255,209,102,.6);
+    box-shadow:0 18px 50px rgba(124,92,255,.5), 0 0 0 8px rgba(124,92,255,.08);
+    animation:float 4.5s ease-in-out infinite;
+  }
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .hero h2{font-size:clamp(22px,6.5vw,34px);letter-spacing:.5px;line-height:1.15}
+  .hero h2 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .hero .tag{color:var(--muted);font-size:clamp(12.5px,3.5vw,14.5px);margin-top:10px;line-height:1.6;max-width:620px;margin-left:auto;margin-right:auto}
+  .hero .crown{color:var(--gold)}
+  .hero .cta{display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+  .hero .cta a{font-size:clamp(11.5px,3.2vw,12.5px);text-decoration:none;color:#c7ccff;padding:9px 15px;border-radius:999px;
+    background:rgba(124,92,255,.12);border:1px solid var(--line);transition:.18s}
+  .hero .cta a:hover{background:rgba(124,92,255,.22);transform:translateY(-1px)}
+
+  /* ---------- grid / cards ---------- */
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(14px,3vw,22px)}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:22px; padding:clamp(18px,4.5vw,26px);
+    backdrop-filter:blur(14px); box-shadow:0 24px 60px rgba(0,0,0,.45); min-width:0;
+  }
+  .card h2{font-size:clamp(16px,4.4vw,18px);margin-bottom:6px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .card .sub{color:var(--muted);font-size:clamp(12.5px,3.4vw,13.5px);margin-bottom:clamp(14px,3.5vw,20px);line-height:1.55}
+
+  label{display:block;font-size:clamp(12px,3.2vw,13px);color:var(--muted);margin-bottom:8px;font-weight:600;letter-spacing:.3px}
+  .field{display:flex;gap:0;align-items:stretch;width:100%}
+  .field input{border-top-right-radius:0;border-bottom-right-radius:0;border-right:none;min-width:0}
+  .field button{border-top-left-radius:0;border-bottom-left-radius:0;padding-left:clamp(14px,4vw,20px);padding-right:clamp(14px,4vw,20px);flex:none}
+  input{
+    flex:1;padding:15px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(5,7,14,.7);
+    color:var(--txt);font-size:16px;outline:none;transition:.2s;font-family:inherit;min-width:0;width:100%;
+  }
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(124,92,255,.16)}
+  button{
+    cursor:pointer;border:none;border-radius:14px;padding:15px 22px;font-size:clamp(14px,3.8vw,15px);font-weight:700;font-family:inherit;
+    color:#fff;background:linear-gradient(135deg,var(--accent),#5b3df0);transition:.18s;white-space:nowrap;
+    box-shadow:0 12px 28px rgba(124,92,255,.4);
+  }
+  button:hover{transform:translateY(-1px);filter:brightness(1.08)}
+  button:active{transform:translateY(0)}
+  button:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+  .hint{font-size:clamp(11px,3vw,12px);color:var(--muted);margin-top:10px;line-height:1.5}
+
+  .codebox{
+    margin-top:22px;border-radius:18px;border:1px dashed rgba(124,92,255,.5);background:rgba(124,92,255,.07);
+    padding:clamp(16px,4vw,22px);text-align:center;display:none;
+  }
+  .codebox.show{display:block;animation:pop .35s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+  .code{font-size:clamp(26px,9vw,38px);font-weight:800;letter-spacing:clamp(3px,1.6vw,8px);color:#fff;font-family:'Courier New',monospace;
+    text-shadow:0 0 24px rgba(124,92,255,.7);margin:6px 0 4px;word-break:break-all}
+  .copy{margin-top:14px;background:rgba(255,255,255,.08);box-shadow:none;padding:10px 16px;font-size:clamp(12px,3.2vw,13px)}
+  .steps{margin-top:20px;font-size:clamp(12.5px,3.3vw,13.5px);color:var(--muted);line-height:1.9}
+  .steps b{color:var(--txt)}
+  .msg{margin-top:16px;font-size:clamp(12.5px,3.3vw,13.5px);padding:12px 14px;border-radius:12px;display:none}
+  .msg.err{display:block;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
+  .msg.ok{display:block;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+  @media(max-width:380px){.stats{grid-template-columns:1fr}}
+  .stat{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+  .stat .k{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .stat .v{font-size:clamp(15px,4.2vw,17px);font-weight:700;margin-top:5px;word-break:break-all}
+  .feat{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{font-size:clamp(11px,3vw,12px);padding:7px 12px;border-radius:999px;background:rgba(124,92,255,.12);border:1px solid var(--line);color:#c7ccff}
+  footer{margin-top:34px;color:var(--muted);font-size:clamp(11.5px,3vw,12.5px);text-align:center;line-height:1.8}
+  footer a{color:var(--accent2);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* sessions */
+  .sessions-card{margin-top:clamp(14px,3vw,22px)}
+  .sess{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-radius:14px;
+    background:rgba(255,255,255,.03);border:1px solid var(--line);margin-bottom:10px;flex-wrap:wrap}
+  .sess>div:first-child{min-width:0}
+  .sess .num{font-weight:700;font-size:clamp(14px,3.8vw,15px)}
+  .sess .meta{font-size:clamp(11px,3vw,12px);color:var(--muted);margin-top:2px}
+  .badge{font-size:11px;padding:4px 10px;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .badge.connected{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.35)}
+  .badge.pairing{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.35)}
+  .badge.unpaired,.badge.connecting{background:rgba(139,147,184,.15);color:#c7ccff;border:1px solid var(--line)}
+  .badge.error{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
+  .rm{cursor:pointer;border:none;background:rgba(239,68,68,.14);color:#fca5a5;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;box-shadow:none}
+  .rm:hover{background:rgba(239,68,68,.25)}
+  .empty{color:var(--muted);font-size:clamp(12.5px,3.3vw,13.5px);padding:8px 0;line-height:1.6}
+  .sidbox{margin-top:12px;display:none}
+  .sidbox textarea{width:100%;height:90px;border-radius:12px;border:1px solid var(--line);background:rgba(5,7,14,.7);
+    color:var(--txt);font-family:'Courier New',monospace;font-size:11.5px;padding:10px;resize:vertical;outline:none}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <img class="dp" src="/assets/bot.jpg" alt="SAQIB MD DP" />
+      <div>
+        <h1>SAQIB MD <span>BOT</span></h1>
+        <p>Premium WhatsApp Bot • v3.0.0 • Multi-Session</p>
+      </div>
+    </div>
+    <div class="headright">
+      <div class="pill"><span id="statusDot" class="dot"></span><span id="statusText">Checking…</span></div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <img class="bigdp" src="/assets/bot.jpg" alt="SAQIB MD" />
+    <h2>SAQIB MD <span>BOT</span></h2>
+    <p class="tag">Ek hi bot par <b>500 tak WhatsApp numbers</b> link karo — sirf 8-digit pairing code se, koi QR scan nahi. Neeche apna number daalo aur bot turant live ho jayega. <span class="crown">👑</span></p>
+    <div class="cta">
+      <a href="#pair">🔗 Link a Number</a>
+      <a href="https://github.com/saqibxiqbal-spec/SAQIB-MD-MINI-BOT-V11" target="_blank" rel="noopener">⭐ GitHub</a>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- LEFT: pairing -->
+    <div class="card" id="pair">
+      <h2>🔗 Link Your WhatsApp</h2>
+      <p class="sub">Apna WhatsApp number country code ke sath likho aur 8-digit pairing code lo. Koi QR scan nahi — sirf code type karo. <b>Ek bot par 500 tak numbers link ho sakte hain.</b></p>
+
+      <label for="num">WhatsApp Number (country code ke sath)</label>
+      <div class="field">
+        <input id="num" type="tel" inputmode="numeric" placeholder="923001234567" autocomplete="off" />
+        <button id="pairBtn">Get Code</button>
+      </div>
+      <div class="hint">Example: Pakistan ➜ <b>923001234567</b> (0 aur + ke bina)</div>
+
+      <div id="msg" class="msg"></div>
+
+      <div id="codebox" class="codebox">
+        <div style="font-size:13px;color:var(--muted)">Aapka Pairing Code</div>
+        <div id="code" class="code">----</div>
+        <button id="copyBtn" class="copy">📋 Copy Code</button>
+      </div>
+
+      <div class="steps">
+        <b>Kaise use karein:</b><br/>
+        1️⃣ WhatsApp kholo ➜ <b>Settings</b> ➜ <b>Linked Devices</b><br/>
+        2️⃣ <b>Link a Device</b> par tap karo<br/>
+        3️⃣ <b>"Link with phone number instead"</b> chuno<br/>
+        4️⃣ Ye 8-digit code type karo ✅
+      </div>
+    </div>
+
+    <!-- RIGHT: info -->
+    <div class="card">
+      <h2>⚡ Bot Status</h2>
+      <p class="sub">Live status aur available commands.</p>
+      <div class="stats">
+        <div class="stat"><div class="k">Status</div><div class="v" id="sStatus">—</div></div>
+        <div class="stat"><div class="k">Uptime</div><div class="v" id="sUptime">—</div></div>
+        <div class="stat"><div class="k">Commands</div><div class="v" id="sCmds">—</div></div>
+        <div class="stat"><div class="k">Sessions</div><div class="v" id="sSess">—</div></div>
+      </div>
+      <div class="feat" id="feat"></div>
+      <div class="steps" style="margin-top:20px">
+        <b>Premium Features:</b><br/>
+        🤖 150+ AI models (Gemini engine)<br/>
+        🎨 AI image generation &amp; logos<br/>
+        📥 TikTok / IG / FB / YT downloader<br/>
+        🎵 Audio effects &amp; stickers<br/>
+        👥 Full group management<br/>
+        🧰 Tools, fonts, reactions &amp; more
+      </div>
+    </div>
+  </div>
+
+  <!-- Linked sessions (owner-only) -->
+  <div class="card sessions-card">
+    <h2>📱 Linked Sessions <span id="sessCount" class="chip" style="margin-left:6px">0 / 500</span></h2>
+    <p class="sub">Sirf owner connected numbers dekh sakta hy. Neeche apna owner token daalo (default: aapka owner number).</p>
+    <div class="field" style="margin-bottom:14px;max-width:440px">
+      <input id="token" type="password" placeholder="Owner token" autocomplete="off" />
+      <button id="tokenBtn">Unlock</button>
+    </div>
+    <div id="sessions"><div class="empty">Loading…</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button id="testBtn" class="copy" style="margin-top:0">📨 Send test message to owner</button>
+      <button id="sidBtn" class="copy" style="margin-top:0">💾 Get SESSION_ID backup</button>
+    </div>
+    <div id="sidbox" class="sidbox">
+      <div class="hint">Ye string host ke <b>SESSION_ID</b> config var me paste karo taake restart par logins bache rahein.</div>
+      <textarea id="sidText" readonly></textarea>
+      <button class="copy" id="sidCopy" style="margin-top:8px">📋 Copy SESSION_ID</button>
+    </div>
+  </div>
+
+  <!-- Settings persistence (owner-only) -->
+  <div class="card sessions-card">
+    <h2>\u2699\ufe0f Settings Persistence <span id="setPill" class="chip" style="margin-left:6px">checking\u2026</span></h2>
+    <p class="sub">Jo setting aap WhatsApp par ON karte ho (<b>.statuslike</b>, <b>.antidelete</b>, <b>.autoreact</b> \u2026) woh save rehni chahiye. Aise hosts par jinki disk restart pe mit jati hy, \u2014 neeche button se ek persistent store banao aur URL ko <b>SETTINGS_URL</b> config var me daal do. Iske baad har toggle hamesha ON rahegi.</p>
+    <div id="setMsg" class="msg"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button id="setBtn" class="copy" style="margin-top:0">\ud83d\udee1\ufe0f Create persistent settings store</button>
+      <button id="setRef" class="copy" style="margin-top:0">\ud83d\udd04 Refresh status</button>
+    </div>
+    <div id="setbox" class="sidbox">
+      <div class="hint">Ye URL host ke <b>SETTINGS_URL</b> config var me paste karo, phir ek baar restart karo. Iske baad har toggle hamesha ON rahegi.</div>
+      <textarea id="setUrl" readonly></textarea>
+      <button class="copy" id="setCopy" style="margin-top:8px">\ud83d\udccb Copy SETTINGS_URL</button>
+    </div>
+  </div>
+
+  <footer>
+    <div>SAQIB MD BOT — Premium WhatsApp Bot • Built with Baileys</div>
+    <div style="margin-top:6px">Owner: <b>I'm Saqib king 👑</b> • <a href="https://github.com/saqibxiqbal-spec/SAQIB-MD-MINI-BOT-V11">GitHub</a></div>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const API = '';
+const TOKEN_KEY = 'saqib_admin_token';
+
+/* ---------------- boot (portal is public — no lock screen) ---------------- */
+function bootPortal() {
+  refreshStatus(); refreshCommands(); refreshSessions(); refreshSettings();
+}
+
+/* ---------------- status / commands ---------------- */
+async function refreshStatus() {
+  try {
+    const r = await fetch(API + '/api/status');
+    const d = await r.json();
+    const st = (d.status || 'unknown');
+    const dot = $('statusDot');
+    dot.className = 'dot' + (d.connected ? ' on' : (st === 'error' || st === 'logged_out' ? ' off' : ''));
+    $('statusText').textContent = d.connected ? 'Online ✅' : st.charAt(0).toUpperCase() + st.slice(1);
+    $('sStatus').textContent = st;
+    $('sUptime').textContent = d.uptime || '—';
+    $('sSess').textContent = (d.connectedCount || 0) + ' / ' + (d.maxSessions || 500);
+  } catch { $('statusText').textContent = 'Offline'; }
+}
+async function refreshCommands() {
+  try {
+    const r = await fetch(API + '/api/commands');
+    const d = await r.json();
+    $('sCmds').textContent = d.total || '—';
+    const cats = Object.keys(d.categories || {});
+    $('feat').innerHTML = cats.map(c => `<span class="chip">${c}</span>`).join('');
+  } catch {}
+}
+function getToken() { return (localStorage.getItem(TOKEN_KEY) || '').trim(); }
+async function refreshSessions() {
+  const token = getToken();
+  try {
+    const r = await fetch(API + '/api/sessions' + (token ? '?token=' + encodeURIComponent(token) : ''));
+    const d = await r.json();
+    const list = d.sessions || [];
+    $('sessCount').textContent = (d.count != null ? d.count : list.length) + ' / ' + (d.max || 500);
+    const box = $('sessions');
+    if (d.locked) {
+      box.innerHTML = '<div class="empty">🔒 Sirf owner connected numbers dekh sakta hy. Neeche owner token daal ke <b>Unlock</b> dabao.</div>';
+      return;
+    }
+    if (!list.length) { box.innerHTML = '<div class="empty">Abhi koi session linked nahi hy. Upar number daal ke link karo.</div>'; return; }
+    box.innerHTML = list.map(s => `
+      <div class="sess">
+        <div>
+          <div class="num">+${s.number}</div>
+          <div class="meta">Owner: +${s.owner || s.number}${s.since ? ' • since ' + new Date(s.since).toLocaleString() : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="badge ${s.status}">${s.status}</span>
+          <button class="rm" data-num="${s.number}">Remove</button>
+        </div>
+      </div>`).join('');
+    box.querySelectorAll('.rm').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Session +' + b.dataset.num + ' remove karein?')) return;
+      b.disabled = true; b.textContent = '…';
+      try { await fetch(API + '/api/session/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ number: b.dataset.num, token: getToken() }) }); } catch {}
+      refreshSessions(); refreshStatus();
+    }));
+  } catch { $('sessions').innerHTML = '<div class="empty">Sessions load nahi ho sake.</div>'; }
+}
+function showMsg(text, type) {
+  const m = $('msg'); m.textContent = text; m.className = 'msg ' + type;
+}
+
+/* ---------------- pairing ---------------- */
+$('pairBtn').addEventListener('click', async () => {
+  const number = ($('num').value || '').replace(/[^0-9]/g, '');
+  if (number.length < 8) return showMsg('❌ Sahi number likho (country code ke sath).', 'err');
+  const btn = $('pairBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Wait…';
+  $('codebox').classList.remove('show');
+  $('msg').className = 'msg';
+  try {
+    const r = await fetch(API + '/api/pair/stream', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number })
+    });
+    if (!r.ok || !r.body) throw new Error('Server error');
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+        const line = chunk.split('\n').find((l) => l.startsWith('data:'));
+        if (!line) continue;
+        let evt; try { evt = JSON.parse(line.slice(5).trim()); } catch { continue; }
+        if (evt.status === 'code' && evt.code) {
+          $('code').textContent = evt.code;
+          $('codebox').classList.add('show');
+          showMsg('✅ Code ban gaya! WhatsApp me type karo.', 'ok');
+        } else if (evt.status === 'linking') {
+          showMsg('⏳ Code accept ho gaya — link ho raha hy…', 'ok');
+        } else if (evt.status === 'paired') {
+          showMsg('✅ Device link ho gaya! Bot online hy 🎉', 'ok');
+          refreshSessions(); refreshStatus();
+        } else if (evt.status === 'error') {
+          showMsg('❌ ' + (evt.error || 'Pairing fail'), 'err');
+        }
+      }
+    }
+  } catch (e) {
+    showMsg('❌ ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Get Code';
+  }
+});
+$('copyBtn').addEventListener('click', () => {
+  const code = $('code').textContent;
+  navigator.clipboard?.writeText(code).then(() => {
+    $('copyBtn').textContent = '✅ Copied!';
+    setTimeout(() => $('copyBtn').textContent = '📋 Copy Code', 1500);
+  });
+});
+$('num').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('pairBtn').click(); });
+$('token').value = getToken();
+$('tokenBtn').addEventListener('click', () => {
+  localStorage.setItem(TOKEN_KEY, ($('token').value || '').trim());
+  refreshSessions();
+});
+$('token').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('tokenBtn').click(); });
+$('testBtn').addEventListener('click', async () => {
+  const btn = $('testBtn'); const old = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await fetch(API + '/api/test-send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: getToken() }) });
+    const d = await r.json();
+    alert(d.ok ? '✅ Test message sent to +' + String(d.to || '').split('@')[0] : '❌ ' + (d.error || 'failed'));
+  } catch (e) { alert('❌ ' + e.message); }
+  btn.disabled = false; btn.textContent = old;
+});
+$('sidBtn').addEventListener('click', async () => {
+  const btn = $('sidBtn'); const old = btn.textContent; btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const r = await fetch(API + '/api/session-id?token=' + encodeURIComponent(getToken()));
+    const d = await r.json();
+    if (!d.ok) { alert('❌ ' + (d.error || 'failed')); }
+    else { $('sidText').value = d.id; $('sidbox').style.display = 'block'; }
+  } catch (e) { alert('❌ ' + e.message); }
+  btn.disabled = false; btn.textContent = old;
+});
+$('sidCopy').addEventListener('click', () => {
+  navigator.clipboard?.writeText($('sidText').value).then(() => {
+    $('sidCopy').textContent = '✅ Copied!';
+    setTimeout(() => $('sidCopy').textContent = '📋 Copy SESSION_ID', 1500);
+  });
+});
+
+/* ---------------- settings persistence (owner-only) ---------------- */
+async function refreshSettings() {
+  const pill = $('setPill');
+  try {
+    const r = await fetch(API + '/api/settings?token=' + encodeURIComponent(getToken()));
+    const d = await r.json();
+    if (!d.ok) { pill.textContent = 'locked'; pill.style.color = '#f87171'; return; }
+    if (d.persistent) { pill.textContent = 'persistent \u2705'; pill.style.color = '#34d399'; }
+    else { pill.textContent = 'local only \u26a0\ufe0f'; pill.style.color = '#fbbf24'; }
+  } catch { pill.textContent = 'error'; pill.style.color = '#f87171'; }
+}
+$('setBtn').addEventListener('click', async () => {
+  const btn = $('setBtn'); const old = btn.textContent; btn.disabled = true; btn.textContent = 'Creating\u2026';
+  try {
+    const r = await fetch(API + '/api/settings-store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: getToken() }) });
+    const d = await r.json();
+    if (!d.ok) { alert('\u274c ' + (d.error || 'failed')); }
+    else { $('setUrl').value = d.url; $('setbox').style.display = 'block'; }
+  } catch (e) { alert('\u274c ' + e.message); }
+  btn.disabled = false; btn.textContent = old;
+});
+$('setRef').addEventListener('click', refreshSettings);
+$('setCopy').addEventListener('click', () => {
+  navigator.clipboard?.writeText($('setUrl').value).then(() => {
+    $('setCopy').textContent = '\u2705 Copied!';
+    setTimeout(() => $('setCopy').textContent = '\ud83d\udccb Copy SETTINGS_URL', 1500);
+  });
+});
+
+/* ---------------- boot ---------------- */
+bootPortal();
+setInterval(refreshStatus, 8000);
+setInterval(refreshSessions, 10000);
+setInterval(refreshSettings, 15000);
+</script>
+</body>
+</html>
