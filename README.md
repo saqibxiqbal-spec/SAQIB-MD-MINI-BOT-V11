@@ -8,6 +8,21 @@
 
 ---
 
+## 🖥️ Premium Pairing Portal
+
+The bot ships with a **premium, advanced web portal** (glassmorphism + animated
+aurora UI) used to pair numbers with an **8-digit code** — no QR scan.
+
+- 🔗 **Pair** — enter a number (with country code) → get a live 8-digit code + expiry countdown
+- 📊 **Live status** — real-time bot status, uptime, sessions, build info
+- 🧭 **Command explorer** — search all **1877** commands by category
+- 👑 **Owner panel** — linked sessions, test-send, reconnect-all, SESSION_ID backup, settings persistence
+- ❓ **FAQ** + toast notifications + reveal animations + mobile-first responsive
+
+> 📘 **Full step-by-step deployment + MongoDB Atlas setup → [`DEPLOY.md`](./DEPLOY.md)**
+
+---
+
 ## 🔗 Owner & Links
 
 | Platform | Link |
