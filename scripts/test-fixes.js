@@ -219,16 +219,20 @@ const fun = require('../plugins/fun');
     await premium.handler(p);
     ok('antidelete all on -> both true', config.ANTIDELETE === true && config.ANTIDELETE_INBOX === true);
 
-    // autoreact scopes
-    config.AUTO_REACT_GROUP = true; config.AUTO_REACT_CHAT = true;
+    // autoreact scopes (PER-BOT: stored in lib/reactSettings, not config)
+    const reactSettings = require('../lib/reactSettings');
+    const sessNum = p.session?.number || p.session?.session?.number;
+    reactSettings.set(sessNum, { autoReact: true, autoReactGroup: true, autoReactChat: true });
     p = mockCtx({ command: 'autoreact', arg: 'group off' });
     await premium.handler(p);
-    ok('autoreact group off -> AUTO_REACT_GROUP=false', config.AUTO_REACT_GROUP === false);
-    ok('autoreact chat untouched', config.AUTO_REACT_CHAT === true);
+    const afterGroup = reactSettings.get(sessNum);
+    ok('autoreact group off -> autoReactGroup=false', afterGroup.autoReactGroup === false);
+    ok('autoreact chat untouched', afterGroup.autoReactChat === true);
 
     p = mockCtx({ command: 'autoreact', arg: 'all off' });
     await premium.handler(p);
-    ok('autoreact all off -> master+group+chat false', !config.AUTO_REACT && !config.AUTO_REACT_GROUP && !config.AUTO_REACT_CHAT);
+    const afterAll = reactSettings.get(sessNum);
+    ok('autoreact all off -> master+group+chat false', !afterAll.autoReact && !afterAll.autoReactGroup && !afterAll.autoReactChat);
 
     p = mockCtx({ command: 'autoreact', arg: 'status' });
     await premium.handler(p);
