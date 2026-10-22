@@ -181,34 +181,96 @@ function categoriesText() {
   });
 }
 
-function categoryText(cat) {
+/**
+ * COMPACT HEADER for sub-menus.
+ * The big `header()` card costs ~300 chars, which would push every category
+ * list over WhatsApp's 1024-char caption limit and force the bot picture into
+ * a SEPARATE message. Sub-menus therefore use this one-liner instead, so the
+ * DP always travels with the command list in ONE message.
+ */
+function compactHeader() {
+  let name = config.BOT_NAME;
+  try { name = fonts.applyDefault(config.BOT_NAME); } catch { /* keep plain */ }
+  const cats = categories();
+  const total = [...cats.values()].reduce((n, c) => n + c.length, 0);
+  return `✦ *${name}* • ⚡ v${config.BOT_VERSION} • 📦 ${total} cmds`;
+}
+
+/**
+ * Lay commands out in a grid so a 180-command category still fits a caption.
+ * Column count adapts to the longest command name so lines never wrap.
+ */
+function cmdGrid(cmds, p) {
+  const items = cmds.map((c) => `▸ ${p}${c}`);
+  if (!items.length) return [];
+  const maxLen = items.reduce((m, s) => Math.max(m, s.length), 0);
+  let cols = 3;
+  if (maxLen * 3 + 6 > 46) cols = 2;
+  if (maxLen * 2 + 4 > 46) cols = 1;
+  const colW = maxLen + 2;
+  const rows = [];
+  for (let i = 0; i < items.length; i += cols) {
+    rows.push(items.slice(i, i + cols).map((s) => s.padEnd(colW)).join('').trimEnd());
+  }
+  return rows;
+}
+
+/**
+ * Build every page of a category sub-menu.
+ * Each page is guaranteed <= CAPTION_LIMIT so it ships as ONE image+caption.
+ * Big categories are paginated (`.menu <cat> 2`) instead of being split into
+ * a picture message followed by a text message.
+ */
+function categoryPages(cat) {
   return cached('cat|' + cat, () => {
     const cmds = categories().get(cat) || [];
     const p = config.PREFIX;
-    const bar = '━'.repeat(23);
-    let txt = `${header()}\n\n`;
-    txt += `┏${bar}┓\n`;
-    txt += `┃   ${cat}\n`;
-    txt += `┃   📦 *${cmds.length} commands*\n`;
-    txt += `┗${bar}┛\n\n`;
-    // Small categories: one command per line (premium, readable).
-    // Big categories: two per line so the message stays compact.
-    if (cmds.length <= 30) {
-      txt += cmds.map((c) => ` ▸ ${p}${c}`).join('\n');
-    } else {
-      const rows = [];
-      for (let i = 0; i < cmds.length; i += 2) {
-        const a = `▸ ${p}${cmds[i]}`;
-        const b = cmds[i + 1] ? `▸ ${p}${cmds[i + 1]}` : '';
-        rows.push(b ? `${a.padEnd(26)}${b}` : a);
+    const bar = '━'.repeat(21);
+    const head = compactHeader();
+    const rows = cmdGrid(cmds, p);
+
+    const titleFor = (pg, tot) =>
+      `┏${bar}┓\n┃ ${cat} • ${cmds.length} cmds • ${pg}/${tot}\n┗${bar}┛`;
+
+    const footerFor = (pg, tot) => {
+      let f = `\n${bar}\n`;
+      if (tot > 1) {
+        const nxt = pg < tot ? pg + 1 : 1;
+        f += `💡 ${p}menu ${cat.toLowerCase()} ${nxt} — ${pg < tot ? 'next page' : 'back to start'}\n`;
       }
-      txt += rows.join('\n');
+      f += `💡 ${p}menu — categories\n`;
+      f += `📢 ${p}channel • 👥 ${p}group`;
+      return f;
+    };
+
+    const render = (slice, pg, tot) =>
+      `${head}\n\n${titleFor(pg, tot)}\n\n${slice.join('\n')}${footerFor(pg, tot)}`;
+
+    // Pick the largest grid-rows-per-page that keeps EVERY page under the
+    // caption limit. Deterministic: walk down from "all rows on one page"
+    // until the fully-rendered page set fits. No guessing, no oscillation.
+    const build = (perPage) => {
+      const total = Math.max(1, Math.ceil(rows.length / perPage));
+      const out = [];
+      for (let pg = 1; pg <= total; pg++) {
+        out.push(render(rows.slice((pg - 1) * perPage, pg * perPage), pg, total));
+      }
+      return out;
+    };
+
+    let perPage = Math.max(1, rows.length);
+    let pages = build(perPage);
+    while (perPage > 1 && pages.some((t) => t.length > CAPTION_LIMIT)) {
+      perPage -= 1;
+      pages = build(perPage);
     }
-    txt += `\n\n${bar}\n`;
-    txt += `💡 ${p}menu — categories  •  ${p}menuall — all commands\n`;
-    txt += `📢 ${p}channel  •  👥 ${p}group  •  ✨ _${config.BOT_NAME}_`;
-    return txt;
+    return pages;
   });
+}
+
+/** Back-compat helper: first page of a category. */
+function categoryText(cat) {
+  return categoryPages(cat)[0];
 }
 
 function allText() {
@@ -257,11 +319,18 @@ const handler = async (ctx) => {
         }
         return reply(`❌ *1* se *${cats.length}* ke darmiyan number chuno.\n\n💡 ${config.PREFIX}menu likho — saari categories dekhne ke liye.`);
       }
-      const cat = findCategory(q);
+      // `.menu <cat> <page>` — big categories are paginated so every page
+      // still fits ONE image+caption (bot DP never arrives separately).
+      const parts = q.split(/\s+/).filter(Boolean);
+      const pageArg = parts.length > 1 && /^\d{1,3}$/.test(parts[parts.length - 1])
+        ? parseInt(parts.pop(), 10) : 1;
+      const cat = findCategory(parts.join(' '));
       if (!cat) {
         return reply(`❌ Category *"${q}"* nahi mili.\n\n💡 ${config.PREFIX}menu likho — saari categories dekhne ke liye.`);
       }
-      return sendMenu(ctx, categoryText(cat), { caption: `📂 *${cat}*` });
+      const pages = categoryPages(cat);
+      const pg = Math.min(Math.max(1, pageArg), pages.length);
+      return sendMenu(ctx, pages[pg - 1], { caption: `📂 *${cat}* • ${pg}/${pages.length}` });
     }
     case 'menuall': {
       // Every menu carries the DP too (long text -> DP first, then the list).
@@ -436,4 +505,6 @@ module.exports = {
   handler,
   onMessage,
   resetBotPic,
+  // exposed for diagnostics/tests only (no behaviour change)
+  _internal: { categories, categoryPages, categoryText, categoriesText, allText, compactHeader, cmdGrid, CAPTION_LIMIT },
 };
