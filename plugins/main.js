@@ -66,17 +66,26 @@ function findCategory(query) {
   return hit || null;
 }
 
-/** A premium, modern header — a compact box that reads beautifully on a phone. */
+/**
+ * PREMIUM HEADER — a rich, modern card that reads beautifully on a phone.
+ * Shows the live command count, category count, owner, time, prefix and status
+ * so the very first lines of every menu already feel "premium".
+ */
 function header() {
   let name = config.BOT_NAME;
   try { name = fonts.applyDefault(config.BOT_NAME); } catch { /* keep plain */ }
   const when = new Date().toLocaleTimeString('en-PK', { timeZone: config.TIMEZONE, hour: '2-digit', minute: '2-digit', hour12: true });
+  const cats = categories();
+  const total = [...cats.values()].reduce((n, c) => n + c.length, 0);
   return (
-    `╭━━━━━━━━━━━━━━━━━━━━━╮\n` +
+    `┏━━━━━━━━━━━━━━━━━━━━━━━┓\n` +
     `┃   ✦  *${name}*  ✦\n` +
-    `╰━━━━━━━━━━━━━━━━━━━━━╯\n` +
-    `  ⚡ *v${config.BOT_VERSION}*  •  👑 ${config.OWNER_NAME}  •  🕒 ${when}\n` +
-    `  💠 Prefix: *${config.PREFIX}*`
+    `┃   ⚡ PREMIUM EDITION  •  v${config.BOT_VERSION}\n` +
+    `┗━━━━━━━━━━━━━━━━━━━━━━━┛\n` +
+    ` 👑 *Owner:* ${config.OWNER_NAME}\n` +
+    ` 🕒 *Time:* ${when}\n` +
+    ` 💠 *Prefix:* ${config.PREFIX}   📦 *Commands:* ${total}\n` +
+    ` 📂 *Categories:* ${cats.size}   🟢 *Status:* ONLINE`
   );
 }
 
@@ -132,17 +141,21 @@ function categoriesText() {
   return cached('cats', () => {
     const cats = categories();
     const total = [...cats.values()].reduce((n, c) => n + c.length, 0);
-    const bar = '━'.repeat(21);
+    const bar = '━'.repeat(23);
     let txt = `${header()}\n\n`;
-    txt += `📂 *CATEGORIES*   ›   ${total} commands\n${bar}\n`;
+    txt += `┏${bar}┓\n`;
+    txt += `┃   📂  *COMMAND CATEGORIES*   (${total})\n`;
+    txt += `┗${bar}┛\n\n`;
     let i = 1;
     for (const [cat, cmds] of cats.entries()) {
-      txt += ` ${String(i).padStart(2, '0')} ▸ ${cat}  ›  ${cmds.length}\n`;
+      const num = String(i).padStart(2, '0');
+      txt += ` *${num}* ▸ ${cat}   \`${cmds.length}\`\n`;
       i++;
     }
-    txt += `${bar}\n`;
-    txt += `💡 ${config.PREFIX}menu <category>   •   ${config.PREFIX}menuall\n`;
-    txt += `📢 ${config.PREFIX}channel  •  👥 ${config.PREFIX}group  •  ✨ _${config.BOT_NAME}_`;
+    txt += `\n${bar}\n`;
+    txt += `💡 *Reply with a number* (1-${cats.size}) to open that category\n`;
+    txt += `▸ ${config.PREFIX}menu <category>   •   ${config.PREFIX}menuall\n`;
+    txt += `\n📢 ${config.PREFIX}channel  •  👥 ${config.PREFIX}group  •  ✨ _${config.BOT_NAME}_`;
     return txt;
   });
 }
@@ -151,22 +164,28 @@ function categoryText(cat) {
   return cached('cat|' + cat, () => {
     const cmds = categories().get(cat) || [];
     const p = config.PREFIX;
+    const bar = '━'.repeat(23);
     let txt = `${header()}\n\n`;
-    txt += `╭─❖ ${cat}\n`;
-    txt += `│ 📦 *${cmds.length} commands*\n`;
-    txt += `╰━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    // two commands per line when they are short, so the list is half as long
-    const rows = [];
-    for (let i = 0; i < cmds.length; i += 2) {
-      const a = `▸ ${p}${cmds[i]}`;
-      const b = cmds[i + 1] ? `▸ ${p}${cmds[i + 1]}` : '';
-      rows.push(b ? `${a.padEnd(26)}${b}` : a);
+    txt += `┏${bar}┓\n`;
+    txt += `┃   ${cat}\n`;
+    txt += `┃   📦 *${cmds.length} commands*\n`;
+    txt += `┗${bar}┛\n\n`;
+    // Small categories: one command per line (premium, readable).
+    // Big categories: two per line so the message stays compact.
+    if (cmds.length <= 30) {
+      txt += cmds.map((c) => ` ▸ ${p}${c}`).join('\n');
+    } else {
+      const rows = [];
+      for (let i = 0; i < cmds.length; i += 2) {
+        const a = `▸ ${p}${cmds[i]}`;
+        const b = cmds[i + 1] ? `▸ ${p}${cmds[i + 1]}` : '';
+        rows.push(b ? `${a.padEnd(26)}${b}` : a);
+      }
+      txt += rows.join('\n');
     }
-    txt += rows.join('\n');
-    txt += `\n\n╭─❖ 💡 *MORE*\n`;
-    txt += `│ ▸ ${p}menu — categories\n│ ▸ ${p}menuall — saari commands\n`;
-    txt += `╰━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    txt += `📢 ${config.PREFIX}channel  •  👥 ${config.PREFIX}group  •  ✨ _${config.BOT_NAME}_`;
+    txt += `\n\n${bar}\n`;
+    txt += `💡 ${p}menu — categories  •  ${p}menuall — all commands\n`;
+    txt += `📢 ${p}channel  •  👥 ${p}group  •  ✨ _${config.BOT_NAME}_`;
     return txt;
   });
 }
@@ -174,12 +193,16 @@ function categoryText(cat) {
 function allText() {
   return cached('all', () => {
     const cats = categories();
+    const bar = '━'.repeat(23);
     let txt = `${header()}\n\n`;
     for (const [cat, cmds] of cats.entries()) {
-      txt += `╭─❖ *${cat}*  ›  ${cmds.length}\n`;
-      txt += cmds.map((c) => `│ ▸ ${config.PREFIX}${c}`).join('\n');
-      txt += `\n╰━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      txt += `┏${bar}┓\n`;
+      txt += `┃ ${cat}   \`${cmds.length}\`\n`;
+      txt += `┗${bar}┛\n`;
+      txt += cmds.map((c) => ` ▸ ${config.PREFIX}${c}`).join('\n');
+      txt += `\n\n`;
     }
+    txt += `${bar}\n`;
     txt += `📢 ${config.PREFIX}channel  •  👥 ${config.PREFIX}group  •  ✨ _${config.BOT_NAME}_`;
     return txt;
   });
