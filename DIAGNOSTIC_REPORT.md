@@ -260,3 +260,69 @@ error count = 0
 
 **Result:** every sub-menu page now ships as ONE image + caption. The bot picture
 never arrives separately, for any category, at any size.
+
+---
+
+## FULL REPO SCAN #2 — 2026-10-22 08:40 UTC
+
+### Scan coverage
+| Check | Result |
+|---|---|
+| JS syntax (`node --check`, 112 files) | ✅ 0 failures |
+| Hardcoded secrets in code | ✅ 0 found |
+| `.env` tracked by git | ✅ no (only `.env.example`) |
+| `.gitignore` env rules | ✅ `.env`, `.env.local`, `*.env` |
+| TODO/FIXME/HACK markers | ✅ 0 (only a URL placeholder) |
+| Empty catch blocks in prod code | ✅ 0 (2 exist, both in `test/` + `scripts/`) |
+| Missing local `require()` targets | ✅ 0 |
+| Plugin shape (commands/handler/category) | ✅ 35/35 valid |
+| Duplicate command names | ❌ **1 found → FIXED** |
+| `npm audit --omit=dev` | ✅ 0 vulnerabilities |
+| `lib/` module exports | ✅ all 30 modules load |
+| unhandledRejection / uncaughtException guards | ✅ present (`index.js:517-518`) |
+| Portal external scripts | ✅ 0 (no leftover build artifacts) |
+| `start.sh` / `railway.json` / `Dockerfile` | ✅ all agree on `bash start.sh` |
+| `.env.example` coverage | ❌ **23 keys missing → FIXED** |
+
+### BUG FOUND & FIXED — duplicate `backup` command (dead code)
+
+`plugins/owner2.js` and `plugins/settings.js` both registered `backup`.
+`index.js` loads plugins with `fs.readdirSync()` (alphabetical), so `owner2.js`
+always won and `settings.js`'s handler was **unreachable dead code**.
+
+Consequence for the user:
+- `.backup` → dumped a bot-data JSON file (owner feature)
+- `.backupcode` did not exist
+- `.restore <code>` existed but there was **no way to ever obtain a code**,
+  because the code generator was the shadowed handler.
+
+Fix (commit `63af799`):
+- `settings.js` handler renamed to `backupcode` with alias `mybackup`
+- `mysettings` help text → `💡 .backupcode → backup code banayein`
+- `restore` help text → `ℹ️ Code .backupcode se milta hy`
+- command list updated
+
+After: **1881 unique commands, 0 duplicates.**
+
+### GAP FOUND & FIXED — 23 undocumented env keys
+
+`config.js` reads 68 env vars; `.env.example` documented only 45. Added the
+missing 23 (owner/branding, privacy, auto-react scope, status/greeting,
+anti-abuse extras, image generation). Now **68/68 documented**.
+
+### Final live boot after all changes
+```
+portal:      HTTP 200
+/api/status: {"ok":true,"status":"idle","connected":false,
+              "botName":"SAQIB MD","owner":"I'm Saqib king 👑",
+              "maxSessions":500,"uptime":"33s"}
+```
+
+## RAILWAY — 3rd RETRY, STILL BLOCKED
+
+```
+projectCreate → "Deploys have been paused due to an upstream issue"
+me.projects   → edges: []        (workspace still has 0 projects)
+```
+Token `4fddaab7-f67e-4e31-af82-80e791a372cc` remains valid. The block is
+Railway-side only; nothing in this repo prevents deployment.
