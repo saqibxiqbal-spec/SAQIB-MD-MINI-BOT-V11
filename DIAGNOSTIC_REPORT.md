@@ -15,6 +15,29 @@
 
 ---
 
+## ✅ MONGODB ATLAS — SOLVED (whitelist added by agent)
+`0.0.0.0/0` **add ho gaya** project `6ad900ee1fbce75af3216e3b` ("Project 0") par, key `yvuhzaiy` (GROUP_OWNER) se.
+
+**Final live test:**
+```
+✔ Ping OK — server reachable
+✔ Write/Read OK — roundtrip: 2026-10-22T08:13:54.118Z
+✅ MONGODB IS READY
+```
+**Bot boot with MongoDB:**
+```
+[MONGO] connected ✅ (primary: cluster0.2qkx7r6.mongodb.net)
+[MONGO] restored settings ✅
+[MONGO] settings, prefixes, reacts, react-settings, user-settings, bans + api-keys loaded
+```
+Koi error nahi. ✅
+
+> Note: Atlas Admin API **Digest auth** use karta hai (Basic nahi). Is liye
+> `scripts/atlas-allow-ip.js` ab `curl --digest` se kaam karta hai — pehle wala
+> version Basic auth bhej raha tha aur 401 de raha tha.
+
+---
+
 ## ✅ Jo cheezein BILKUL theek hain (no problem)
 - **Code syntax:** saari `.js` files pass (`node --check`) — koi syntax error nahi.
 - **Live boot test:** bot successfully boot hua — `35 plugin files, 1880 commands`, web portal up, `yt-dlp` + `ffmpeg` bootstrap OK.
