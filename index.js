@@ -241,6 +241,21 @@ app.post('/api/pair', async (req, res) => {
       expiresIn: Math.max(0, Math.round((CODE_TTL_MS - (Date.now() - (sess?.pairingSince || Date.now()))) / 1000)),
     });
   } catch (e) {
+    // Already linked is a SUCCESS state, not an error. Returning 400 here made
+    // the website show a red failure message for a bot that was working fine.
+    if (e?.code === 'ALREADY_LINKED') {
+      const num = e.number || normNum(String(req.body?.number || ''));
+      const sess = bot.sessions.get(num);
+      return res.json({
+        ok: true,
+        alreadyLinked: true,
+        code: null,
+        number: num,
+        qr: null,
+        status: sess?.status || 'connected',
+        expiresIn: 0,
+      });
+    }
     res.status(400).json({ ok: false, error: e?.message || 'Pairing fail ho gaya.' });
   }
 });
