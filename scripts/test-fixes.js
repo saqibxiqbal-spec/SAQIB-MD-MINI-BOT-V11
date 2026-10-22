@@ -204,20 +204,23 @@ const fun = require('../plugins/fun');
     const config = require('../config');
 
     // anti-delete chat scope
-    config.ANTIDELETE_INBOX = false;
+    // NOTE: toggles are PER-BOT (lib/userSettings), never the shared config.
+    const userSettings = require('../lib/userSettings');
+    const eff = () => userSettings.eff();
     let p = mockCtx({ command: 'antidelete', arg: 'chat on' });
     await premium.handler(p);
-    ok('antidelete chat on -> ANTIDELETE_TO_CHAT=true', config.ANTIDELETE_TO_CHAT === true);
+    ok('antidelete chat on -> ANTIDELETE_TO_CHAT=true', eff().ANTIDELETE_TO_CHAT === true);
     ok('antidelete status text shown', /Anti-delete/i.test(p._sent[0]?.text || ''), p._sent[0]?.text);
 
     p = mockCtx({ command: 'antidelete', arg: 'inbox off' });
     await premium.handler(p);
-    ok('antidelete inbox off -> ANTIDELETE_TO_CHAT=false', config.ANTIDELETE_TO_CHAT === false);
+    ok('antidelete inbox off -> ANTIDELETE_TO_CHAT=false', eff().ANTIDELETE_TO_CHAT === false);
 
     // anti-delete all
     p = mockCtx({ command: 'antidelete', arg: 'all on' });
     await premium.handler(p);
-    ok('antidelete all on -> both true', config.ANTIDELETE === true && config.ANTIDELETE_INBOX === true);
+    ok('antidelete all on -> both true', eff().ANTIDELETE === true && eff().ANTIDELETE_INBOX === true);
+    ok('antidelete status reflects live values', /Master: ON/.test(p._sent[0]?.text || ''), p._sent[0]?.text);
 
     // autoreact scopes (PER-BOT: stored in lib/reactSettings, not config)
     const reactSettings = require('../lib/reactSettings');

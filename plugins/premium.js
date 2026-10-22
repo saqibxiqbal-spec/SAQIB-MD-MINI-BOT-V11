@@ -34,7 +34,7 @@ const parseOnOff = (a) => {
   return null;
 };
 const yn = (v) => (v ? 'ON 🟢' : 'OFF 🔴');
-const antideleteStatus = () => `🛡️ *Anti-Delete*\n▪️ Master: ${yn(config.ANTIDELETE)}\n▪️ Group watch: ${yn(config.ANTIDELETE)}\n▪️ Kahan aayega: *${config.ANTIDELETE_TO_CHAT ? 'Chat (jahan delete hua)' : 'Yourself (apni inbox)'}*\n\n_${config.PREFIX}antidelete inbox | ${config.PREFIX}antidelete chat_`;
+const antideleteStatus = (U = config) => `🛡️ *Anti-Delete*\n▪️ Master: ${yn(U.ANTIDELETE)}\n▪️ Group watch: ${yn(U.ANTIDELETE)}\n▪️ Kahan aayega: *${U.ANTIDELETE_TO_CHAT ? 'Chat (jahan delete hua)' : 'Yourself (apni inbox)'}*\n\n_${config.PREFIX}antidelete inbox | ${config.PREFIX}antidelete chat_`;
 const reactScopeLabel = (scope) => (
   scope === 'user' ? 'Users only (owner nahi)'
     : scope === 'owner' ? 'Owner only'
@@ -377,6 +377,8 @@ async function onMessage(ctx) {
 /* ============================ commands ============================ */
 const handler = async (ctx) => {
   const { command, reply, arg, senderNum, session } = ctx;
+  // PER-NUMBER settings (live Proxy: reflects setU() immediately).
+  const U = userSettings.eff(session?.number);
   // Write THIS bot's own settings (never the shared config).
   const setU = (patch) => userSettings.set(session?.number, patch);
 
@@ -394,7 +396,7 @@ const handler = async (ctx) => {
     const parts = String(arg || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
     const scope = ['chat', 'inbox', 'group', 'all', 'status', 'show', 'where']
       .includes(parts[0]) ? parts[0] : null;
-    if (scope === 'status' || scope === 'show' || scope === 'where') return reply(antideleteStatus());
+    if (scope === 'status' || scope === 'show' || scope === 'where') return reply(antideleteStatus(U));
 
     // Destination: inbox (yourself) or chat (where it happened).
     if (scope === 'inbox' || scope === 'chat') {
@@ -413,14 +415,14 @@ const handler = async (ctx) => {
       return;
     }
 
-    if (command === 'antideleteinbox') { setU({ ANTIDELETE: true, ANTIDELETE_TO_CHAT: false }); await reply(antideleteStatus()); return; }
+    if (command === 'antideleteinbox') { setU({ ANTIDELETE: true, ANTIDELETE_TO_CHAT: false }); await reply(antideleteStatus(U)); return; }
 
     const val = parseOnOff(parts[scope ? 1 : 0]);
     if (scope === 'group') setU({ ANTIDELETE: val === null ? !U.ANTIDELETE : val });
     else if (scope === 'all') { const v = val === null ? !(U.ANTIDELETE || U.ANTIDELETE_INBOX) : val; setU({ ANTIDELETE: v, ANTIDELETE_INBOX: v }); }
     else setU({ ANTIDELETE: val === null ? !U.ANTIDELETE : val });
     settings.save();
-    await reply(antideleteStatus());
+    await reply(antideleteStatus(U));
     return;
   }
 

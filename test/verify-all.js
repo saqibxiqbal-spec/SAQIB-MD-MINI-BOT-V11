@@ -6,6 +6,8 @@
 process.env.SESSION_DIR = process.env.SESSION_DIR || './.test-session';
 const fs = require('fs');
 const path = require('path');
+const OUT_DIR = path.join(__dirname, '..', 'reports');
+fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const realExit = process.exit.bind(process);
 process.exit = () => {};
@@ -104,7 +106,7 @@ const withTimeout = (p, ms) => Promise.race([
 
   const by = {};
   for (const r of results) by[r.status] = (by[r.status] || 0) + 1;
-  fs.writeFileSync('/workspace/saqib-md/report-all-commands.json', JSON.stringify(results, null, 2));
+  fs.writeFileSync(OUT_DIR + '/report-all-commands.json', JSON.stringify(results, null, 2));
 
   const md = [];
   md.push(`# SAQIB MD — Full Command Verification Report`);
@@ -117,7 +119,7 @@ const withTimeout = (p, ms) => Promise.race([
   md.push(`| Command | Plugin | Status | Reply |`);
   md.push(`|---|---|---|---|`);
   for (const r of results) md.push(`| ${r.cmd} | ${r.plugin} | ${r.status} | ${(r.reply || '').replace(/\|/g, '/').replace(/\n/g, ' ')} |`);
-  fs.writeFileSync('/workspace/saqib-md/report-all-commands.md', md.join('\n'));
+  fs.writeFileSync(OUT_DIR + '/report-all-commands.md', md.join('\n'));
 
   console.log(`\n=== FINAL ===`);
   console.log(JSON.stringify(by));

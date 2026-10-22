@@ -5,6 +5,26 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+
+// ---------------------------------------------------------------------------
+// Global outbound-fetch guard.
+// Many commands call third-party APIs (carbon, catbox, pollinations, mail.tm…).
+// Without a timeout a single dead endpoint hangs the command forever and the
+// user just sees "waiting…". Wrap global fetch so EVERY outbound call gets an
+// AbortSignal unless the caller already supplied one.
+// ---------------------------------------------------------------------------
+(() => {
+  const realFetch = globalThis.fetch;
+  if (typeof realFetch !== 'function' || realFetch.__saqibGuarded) return;
+  const DEFAULT_MS = Number(process.env.FETCH_TIMEOUT_MS || 120000);
+  const guarded = (input, init = {}) => {
+    if (init && init.signal) return realFetch(input, init);
+    return realFetch(input, { ...(init || {}), signal: AbortSignal.timeout(DEFAULT_MS) });
+  };
+  guarded.__saqibGuarded = true;
+  globalThis.fetch = guarded;
+})();
+
 const config = require('./config');
 const mongo = require('./lib/mongo');
 // Load persisted runtime overrides (toggles survive restarts/redeploys).
