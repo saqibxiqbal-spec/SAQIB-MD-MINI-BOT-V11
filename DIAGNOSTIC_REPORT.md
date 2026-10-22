@@ -190,3 +190,73 @@ mutation { projectCreate(input: { name: "SAQIB-MD", workspaceId: "7ac74bcc-2cd3-
 
 Then `serviceCreate` (source = repo `saqibxiqbal-spec/SAQIB-MD-MINI-BOT-V11`, branch `main`),
 set env vars, `serviceDomainCreate`, and check `deployments` logs.
+
+---
+
+## OPTION D — COMPACT PAGINATED CATEGORY SUB-MENUS ✅ (commit 47abc53)
+
+### Problem
+Category sub-menus used the full `header()` card (~300 chars) plus one command
+per line. Big categories blew past WhatsApp's 1024-char caption limit, so the bot
+picture was forced into a SEPARATE message — exactly what the owner did not want.
+
+Measured before the fix (worst offenders):
+| Category | Commands |
+|---|---|
+| 🎎 CHARACTERS | 184 |
+| 🕌 ISLAMIC | 184 |
+| 🌍 COUNTRIES | 177 |
+| 🔧 UTILITY | 155 |
+| 🤖 AI | 152 |
+| 🔤 FONTS | 133 |
+
+### What changed (`plugins/main.js`)
+1. **`compactHeader()`** — sub-menus now use a one-line header
+   (`✦ *SAQIB MD* • ⚡ v3.0.0 • 📦 1880 cmds`) instead of the 300-char card.
+   The full card is still used for the TOTAL `.menu` list.
+2. **`cmdGrid()`** — adaptive grid: picks 3, 2 or 1 columns based on the longest
+   command name so lines never wrap on a phone.
+3. **`categoryPages()`** — deterministic page sizing. Starts with "all rows on one
+   page" and walks rows-per-page DOWN until **every** rendered page is ≤ 1024
+   chars. (First attempt used a convergence loop and left 3 pages over the limit —
+   AI p2 at 1061, ISLAMIC p2 at 1108, ISLAMIC p3 at 1119. Replaced with the
+   deterministic walk; now 0 over.)
+4. **Pagination in the handler** — `.menu <cat> <page>`, e.g. `.menu characters 2`.
+   The footer prints the exact next-page command, and wraps back to page 1.
+
+### Verified
+```
+cat | cmds | pages | maxlen
+🎎 CHARACTERS   | 184 | 4 | 1020 OK
+🕌 ISLAMIC      | 184 | 5 | 1006 OK
+🌍 COUNTRIES    | 177 | 4 | 1022 OK
+🔧 UTILITY      | 155 | 3 | 1006 OK
+🤖 AI           | 152 | 4 |  991 OK
+🔤 FONTS        | 133 | 3 | 1006 OK
+🔬 SCIENCE      | 120 | 3 | 1008 OK
+🎭 REACTIONS    |  83 | 2 | 1008 OK
+👥 GROUP        |  72 | 2 |  998 OK
+... 21 more single-page categories ...
+TOTAL pages=51  over-limit=0
+```
+
+Handler simulation (`.menu <cat> <page>`):
+```
+.menu characters   -> 🎎 CHARACTERS page 1/4 len=999  OK
+.menu characters 2 -> 🎎 CHARACTERS page 2/4 len=1015 OK
+.menu characters 4 -> 🎎 CHARACTERS page 4/4 len=476  OK
+.menu islamic 3    -> 🕌 ISLAMIC    page 3/5 len=967  OK
+.menu ai 4         -> 🤖 AI         page 4/4 len=335  OK
+failures=0
+```
+
+Live restart after the change:
+```
+SAQIB MD: 35 plugin files, 1880 commands
+[MONGO] connected ✅ (primary: cluster0.2qkx7r6.mongodb.net)
+[MONGO] settings, prefixes, reacts, react-settings, user-settings, bans + api-keys loaded
+error count = 0
+```
+
+**Result:** every sub-menu page now ships as ONE image + caption. The bot picture
+never arrives separately, for any category, at any size.
