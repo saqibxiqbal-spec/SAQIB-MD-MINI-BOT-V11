@@ -40,3 +40,12 @@ saqib-langs.json
 saqib-react-settings.json
 saqib-apikeys.json
 public/index.legacy.html
+
+# runtime state (never commit)
+saqib-settings.json
+saqib-react-settings.json
+saqib-user-settings.json
+saqib-prefixes.json
+saqib-reacts.json
+saqib-bans.json
+saqib-apikeys.json
