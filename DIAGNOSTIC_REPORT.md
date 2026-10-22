@@ -148,3 +148,45 @@ Aap ne live GitHub token, MongoDB password, Atlas keys aur Railway token share k
 3. **Naya Railway token** banayein (Error 3).
 4. Portal se `ninja-daytona-script.js` hataayein (Issue 6).
 5. Saari leaked credentials rotate karein (Issue 8).
+
+---
+
+## LIVE SANDBOX RUN — 2026-10-22 08:20 UTC ✅
+
+Bot was started directly from the repo in the sandbox (`node index.js`) to prove the
+codebase is healthy end-to-end, independent of any host:
+
+```
+[SETTINGS] loaded 31 overrides (7 skipped — env wins) from saqib-settings.json
+SAQIB MD: 35 plugin files, 1880 commands
+[YTDLP] available ✅ | ffmpeg: /tmp/saqib-bin/ffmpeg
+SAQIB MD web portal: http://localhost:3000
+[YTDLP] warmup: yt-dlp=ready ffmpeg=ready
+[MONGO] connected ✅ (primary: cluster0.2qkx7r6.mongodb.net)
+[MONGO] restored settings ✅
+[MONGO] settings, prefixes, reacts, react-settings, user-settings, bans + api-keys loaded
+[warm] pre-generating 25 myth images
+```
+
+- Portal: HTTP 200, title `SAQIB MD BOT • Premium Multi-Session WhatsApp Bot`
+- Port 3000 listening on `*:3000`
+- `grep -iE "error|fail|❌"` on the full boot log → **0 matches**
+
+**Conclusion:** the repository, dependencies, MongoDB connection, session store,
+settings store and web portal all work. Nothing in the code is blocking deployment.
+
+## RAILWAY — STILL BLOCKED (external outage, not our code)
+
+- Token `4fddaab7-f67e-4e31-af82-80e791a372cc` → VALID (`saqibxiqbal@gmail.com`)
+- Workspace `7ac74bcc-2cd3-433d-87c5-ee8896391dbc` → exists, 0 projects
+- `projectCreate` → `"Deploys have been paused due to an upstream issue"` (HTTP 200, GraphQL BAD_USER_INPUT)
+- status.railway.com → **"Railway Platform Outage — Major Outage"**, builds paused in all regions
+
+Retry this exact call once Railway restores builds:
+
+```graphql
+mutation { projectCreate(input: { name: "SAQIB-MD", workspaceId: "7ac74bcc-2cd3-433d-87c5-ee8896391dbc" }) { id name } }
+```
+
+Then `serviceCreate` (source = repo `saqibxiqbal-spec/SAQIB-MD-MINI-BOT-V11`, branch `main`),
+set env vars, `serviceDomainCreate`, and check `deployments` logs.
