@@ -211,10 +211,23 @@ app.post('/api/settings-store', async (req, res) => {
   }
 });
 
+// Normalise a user-typed number the SAME way requestPair() does, so the session
+// lookup never misses. "03001234567" -> "923001234567".
+const normNum = (raw) => {
+  try {
+    const { normalizePhone } = require('./lib/helpers');
+    return normalizePhone(raw, require('./config').DEFAULT_COUNTRY_CODE || '92').number;
+  } catch { return String(raw || '').replace(/[^0-9]/g, ''); }
+};
+
+// How long a pairing code stays usable (WhatsApp gives roughly 2 minutes).
+const CODE_TTL_MS = 120 * 1000;
+
 app.post('/api/pair', async (req, res) => {
   try {
-    const num = String(req.body?.number || '').replace(/[^0-9]/g, '');
-    const code = await bot.requestPair(num);
+    const raw = String(req.body?.number || '');
+    const code = await bot.requestPair(raw);
+    const num = normNum(raw);
     // Return the QR in the SAME response. The old flow opened an SSE stream that
     // called requestPair() a second time -- which invalidated the code we just
     // showed and left the QR spinning forever behind a buffering proxy.
@@ -225,6 +238,7 @@ app.post('/api/pair', async (req, res) => {
       number: num,
       qr: sess?.lastQr || null,
       status: sess?.status || 'pairing',
+      expiresIn: Math.max(0, Math.round((CODE_TTL_MS - (Date.now() - (sess?.pairingSince || Date.now()))) / 1000)),
     });
   } catch (e) {
     res.status(400).json({ ok: false, error: e?.message || 'Pairing fail ho gaya.' });
@@ -234,12 +248,13 @@ app.post('/api/pair', async (req, res) => {
 // Read-only pairing state. Safe to poll: it NEVER calls requestPair, so it can
 // not invalidate the code the user is typing.
 app.get('/api/pair/state', (req, res) => {
-  const num = String(req.query?.number || '').replace(/[^0-9]/g, '');
+  const num = normNum(req.query?.number || '');
   if (!num) return res.status(400).json({ ok: false, error: 'number required' });
   const sess = bot.sessions.get(num);
   if (!sess) {
-    return res.json({ ok: true, number: num, status: 'idle', code: null, qr: null, connected: false, error: null });
+    return res.json({ ok: true, number: num, status: 'idle', code: null, qr: null, connected: false, error: null, expiresIn: 0 });
   }
+  const age = sess.pairingSince ? Date.now() - sess.pairingSince : null;
   res.json({
     ok: true,
     number: num,
@@ -248,8 +263,22 @@ app.get('/api/pair/state', (req, res) => {
     qr: sess.lastQr || null,
     connected: sess.status === 'connected',
     error: sess.lastError || null,
-    age: sess.pairingSince ? Date.now() - sess.pairingSince : null,
+    age,
+    expiresIn: age === null ? 0 : Math.max(0, Math.round((CODE_TTL_MS - age) / 1000)),
   });
+});
+
+// Force a completely clean pairing attempt for one number. Used by the portal's
+// "Reset" button when WhatsApp rate-limits or a half-finished attempt is stuck.
+app.post('/api/pair/reset', async (req, res) => {
+  try {
+    const num = normNum(req.body?.number || '');
+    if (!num) return res.status(400).json({ ok: false, error: 'number required' });
+    await bot.removeSession(num);
+    res.json({ ok: true, number: num, message: 'Session reset ho gaya. Ab naya code lein.' });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e?.message || 'Reset fail ho gaya.' });
+  }
 });
 
 // SSE pairing stream — used by the pairing portal for live status

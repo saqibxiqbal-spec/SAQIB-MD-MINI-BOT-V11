@@ -187,14 +187,19 @@ const appeals = require('../lib/appeals');
       try {
         // Use the session manager so this links a NEW number (not the current sock).
         const bot = require('../lib/bot');
+        const { normalizePhone } = require('../lib/helpers');
+        const norm = normalizePhone(num, config.DEFAULT_COUNTRY_CODE || '92');
         await reply('⏳ Code ban raha hy, 2-3 second...');
         const code = await bot.requestPair(num);
+        if (norm.changed) {
+          await reply(`ℹ️ Number adjust kiya: *${norm.original}* ➜ *${norm.number}*`);
+        }
         // Send the code ALONE so it can be copied with one tap — no label, no
         // extra text wrapped around it, and never inside a code block (some
         // clients make backtick-wrapped text hard to long-press).
         await ctx.send(ctx.from, { text: code }, { quoted: ctx.m });
         await ctx.send(ctx.from, {
-          text: '📲 Ye code WhatsApp me daalo:\n*Linked Devices → Link with phone number*\n\n_Code 45 second me expire ho jata hy._',
+          text: '📲 Ye code WhatsApp me daalo:\n*Linked Devices → Link with phone number*\n\n_Code 2 minute me expire ho jata hy — jaldi daalein._',
         });
       } catch (e) { await reply('❌ ' + (e?.message || e)); }
       break;

@@ -149,6 +149,10 @@ const config = {
   SESSION_ID: process.env.SESSION_ID || '',
   MAX_SESSIONS: parseInt(process.env.MAX_SESSIONS || '500', 10),
 
+  // Country code assumed when a user types a local number (e.g. "03001234567").
+  // 92 = Pakistan. Change with DEFAULT_COUNTRY_CODE=91 for India, 971 for UAE...
+  DEFAULT_COUNTRY_CODE: process.env.DEFAULT_COUNTRY_CODE || '92',
+
   // ---- runtime flags ----
   SUDO: (process.env.SUDO || '').split(',').map((s) => s.replace(/[^0-9]/g, '')).filter(Boolean),
 
