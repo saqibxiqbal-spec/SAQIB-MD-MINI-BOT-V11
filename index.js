@@ -211,17 +211,49 @@ app.post('/api/settings-store', async (req, res) => {
 
 app.post('/api/pair', async (req, res) => {
   try {
-    const code = await bot.requestPair(req.body?.number);
-    res.json({ ok: true, code, number: String(req.body?.number || '').replace(/[^0-9]/g, '') });
+    const num = String(req.body?.number || '').replace(/[^0-9]/g, '');
+    const code = await bot.requestPair(num);
+    // Return the QR in the SAME response. The old flow opened an SSE stream that
+    // called requestPair() a second time -- which invalidated the code we just
+    // showed and left the QR spinning forever behind a buffering proxy.
+    const sess = bot.sessions.get(num);
+    res.json({
+      ok: true,
+      code,
+      number: num,
+      qr: sess?.lastQr || null,
+      status: sess?.status || 'pairing',
+    });
   } catch (e) {
     res.status(400).json({ ok: false, error: e?.message || 'Pairing fail ho gaya.' });
   }
 });
 
+// Read-only pairing state. Safe to poll: it NEVER calls requestPair, so it can
+// not invalidate the code the user is typing.
+app.get('/api/pair/state', (req, res) => {
+  const num = String(req.query?.number || '').replace(/[^0-9]/g, '');
+  if (!num) return res.status(400).json({ ok: false, error: 'number required' });
+  const sess = bot.sessions.get(num);
+  if (!sess) {
+    return res.json({ ok: true, number: num, status: 'idle', code: null, qr: null, connected: false, error: null });
+  }
+  res.json({
+    ok: true,
+    number: num,
+    status: sess.status || 'idle',
+    code: sess.code || null,
+    qr: sess.lastQr || null,
+    connected: sess.status === 'connected',
+    error: sess.lastError || null,
+    age: sess.pairingSince ? Date.now() - sess.pairingSince : null,
+  });
+});
+
 // SSE pairing stream — used by the pairing portal for live status
 // (starting → code → linking → paired / error).
-app.post('/api/pair/stream', async (req, res) => {
-  const want = String(req.body?.number || '').replace(/[^0-9]/g, '');
+app.get('/api/pair/stream', async (req, res) => {
+  const want = String(req.query?.number || req.body?.number || '').replace(/[^0-9]/g, '');
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-store, no-transform');
@@ -260,8 +292,10 @@ app.post('/api/pair/stream', async (req, res) => {
 
   send({ status: 'starting', message: 'Connecting to WhatsApp...' });
   try {
-    const code = await bot.requestPair(req.body?.number);
-    if (!codeSentToClient) send({ status: 'code', code }); // fallback if the event was missed
+    // NOTE: intentionally NO requestPair() here. The code is created once by
+    // POST /api/pair; requesting it again would invalidate what the user was shown.
+    const sess0 = bot.sessions.get(want);
+    if (sess0?.code && !codeSentToClient) send({ status: 'code', code: sess0.code });
     // Replay the latest QR (it may have fired before this stream subscribed).
     const sess = bot.sessions.get(want);
     if (sess?.lastQr) send({ status: 'qr', qr: sess.lastQr, number: sess.number });
