@@ -630,6 +630,7 @@ $('pairBtn').addEventListener('click', async () => {
         if (evt.status === 'code' && evt.code) {
           $('code').textContent = evt.code;
           $('codebox').classList.add('show');
+          btn.disabled = false; btn.innerHTML = 'Get New Code';
           setStep(2, 'done');
           showMsg('✅ Code ban gaya! WhatsApp me type karo.', 'ok');
           toast('Pairing code ready: ' + evt.code, 'ok');
@@ -653,7 +654,7 @@ $('pairBtn').addEventListener('click', async () => {
       }
     }
   } catch (e) { showMsg('❌ ' + e.message, 'err'); }
-  finally { btn.disabled = false; btn.textContent = 'Get Code'; }
+  finally { btn.disabled = false; btn.innerHTML = 'Get Code'; }
 });
 $('copyBtn').addEventListener('click', () => {
   const code = $('code').textContent;
