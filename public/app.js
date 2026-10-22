@@ -148,12 +148,17 @@
     }
   }
 
+  var hintedOffline = false;
   function loadStatus(silent) {
     return getJSON('/api/status')
-      .then(function (st) { paintStatus(st); return st; })
+      .then(function (st) { paintStatus(st); hintedOffline = false; return st; })
       .catch(function (e) {
         paintStatus(null);
         if (!silent) toast('Bot tak nahi pohanch saka — URL check karein.', 'err');
+        else if (!hintedOffline) {
+          hintedOffline = true;
+          toast('Bot offline — top-right link icon se apna bot URL connect karein.', 'info', 8000);
+        }
         throw e;
       });
   }
