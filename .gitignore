@@ -49,3 +49,8 @@ saqib-prefixes.json
 saqib-reacts.json
 saqib-bans.json
 saqib-apikeys.json
+
+# local mongo fallback artifacts
+.mongo-bin/
+mongo-data/
+logs/mongod.log
