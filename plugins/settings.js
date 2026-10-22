@@ -282,12 +282,13 @@ const handler = async (ctx) => {
         `${rows}\n` +
         `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
         `\ud83d\udcbe Ye sab restart ke baad bhi mehfooz rehti hain.\n` +
-        `\u2753 ${ctx.prefix}backup \u2192 backup code banayein\n` +
+        `\u2753 ${ctx.prefix}backupcode \u2192 backup code banayein\n` +
         `\u2753 ${ctx.prefix}restore <code> \u2192 wapas laayein`
       );
       break;
     }
-    case 'backup': {
+    case 'backupcode':
+    case 'mybackup': {
       const num = ctx?.session?.number;
       const code = userSettings.exportCode(num);
       const rs = reactSettings.get(num);
@@ -305,7 +306,7 @@ const handler = async (ctx) => {
       break;
     }
     case 'restore': {
-      if (!arg) return reply(`\u2753 Istemal: ${ctx.prefix}restore <backup code>\n\u2139\ufe0f Code ${ctx.prefix}backup se milta hy.`);
+      if (!arg) return reply(`\u2753 Istemal: ${ctx.prefix}restore <backup code>\n\u2139\ufe0f Code ${ctx.prefix}backupcode se milta hy.`);
       try {
         const res = userSettings.importCode(arg, ctx?.session?.number);
         await reply(
@@ -330,7 +331,7 @@ module.exports = {
     'autoread', 'autotyping', 'recording', 'statusview', 'statuslike', 'administration',
     'mentionreply', 'welcome', 'goodbye', 'antilink', 'antistatus', 'setonline',
     'botdp', 'privacy', 'getprivacy', 'groupsprivacy', 'sudo', 'delsudo', 'listsudo', 'setfont', 'reset', 'settings',
-    'mysettings', 'backup', 'restore',
+    'mysettings', 'backupcode', 'mybackup', 'restore',
   ],
   category: '⚙️ SETTINGS',
   handler,
