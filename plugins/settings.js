@@ -23,6 +23,7 @@ const setFlag = (key, arg) => {
 };
 
 const reactSettings = require('../lib/reactSettings');
+const userSettings = require('../lib/userSettings');
 const handler = async (ctx) => {
   const { command, reply, arg } = ctx;
 
@@ -260,6 +261,64 @@ const handler = async (ctx) => {
         `▪️ Online: ${config.ONLINE ? 'ON' : 'OFF'}`
       );
       break;
+    // ---- PER-NUMBER settings: show / backup / restore ----------------------
+    // Everything below is scoped to THIS bot's own number. Nothing here can
+    // read or change another linked number's settings.
+    case 'mysettings': {
+      const num = ctx?.session?.number;
+      const mine = userSettings.get(num);
+      const rs = reactSettings.get(num);
+      const keys = Object.keys(mine);
+      const line = (label, on) => `\u25aa\ufe0f ${label}: ${on ? 'ON \ud83d\udfe2' : 'OFF \ud83d\udd34'}`;
+      const rows = keys.length
+        ? keys.map((k) => line(k.replace(/_/g, '-').toLowerCase(), mine[k])).join('\n')
+        : '_(abhi tak koi setting change nahi ki \u2014 sab default par hy)_';
+      await reply(
+        `\ud83d\udc64 *AAP KI SETTINGS* (sirf is bot ke liye)\n` +
+        `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+        `\ud83d\udd22 Number: ${num || '\u2014'}\n` +
+        `\ud83d\udc51 Auto-react: ${rs.autoReact ? 'ON \ud83d\udfe2' : 'OFF \ud83d\udd34'} (scope: ${rs.reactScope})\n` +
+        `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+        `${rows}\n` +
+        `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+        `\ud83d\udcbe Ye sab restart ke baad bhi mehfooz rehti hain.\n` +
+        `\u2753 ${ctx.prefix}backup \u2192 backup code banayein\n` +
+        `\u2753 ${ctx.prefix}restore <code> \u2192 wapas laayein`
+      );
+      break;
+    }
+    case 'backup': {
+      const num = ctx?.session?.number;
+      const code = userSettings.exportCode(num);
+      const rs = reactSettings.get(num);
+      await reply(
+        `\ud83d\udcbe *BACKUP READY*\n` +
+        `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+        `\ud83d\udd22 Number: ${num || '\u2014'}\n` +
+        `\ud83d\udc64 Auto-react: ${rs.autoReact ? 'ON' : 'OFF'}\n` +
+        `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+        `\`\`\`${code}\`\`\`\n` +
+        `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+        `\u26a0\ufe0f Ye code sambhal kar rakhein. Naye server par ya disk wipe hone ke baad:\n` +
+        `\u2753 ${ctx.prefix}restore ${code.slice(0, 14)}\u2026`
+      );
+      break;
+    }
+    case 'restore': {
+      if (!arg) return reply(`\u2753 Istemal: ${ctx.prefix}restore <backup code>\n\u2139\ufe0f Code ${ctx.prefix}backup se milta hy.`);
+      try {
+        const res = userSettings.importCode(arg, ctx?.session?.number);
+        await reply(
+          `\u2705 *RESTORE HO GAYA*\n` +
+          `\u25aa\ufe0f Number: ${res.number}\n` +
+          `\u25aa\ufe0f ${res.count} setting(s) wapas aa gayi.\n` +
+          `\u2753 ${ctx.prefix}mysettings se check karein.`
+        );
+      } catch (e) {
+        await reply(`\u274c ${e?.message || 'Restore fail ho gaya.'}`);
+      }
+      break;
+    }
     default: await reply('❓ Unknown setting');
   }
 };
@@ -271,6 +330,7 @@ module.exports = {
     'autoread', 'autotyping', 'recording', 'statusview', 'statuslike', 'administration',
     'mentionreply', 'welcome', 'goodbye', 'antilink', 'antistatus', 'setonline',
     'botdp', 'privacy', 'getprivacy', 'groupsprivacy', 'sudo', 'delsudo', 'listsudo', 'setfont', 'reset', 'settings',
+    'mysettings', 'backup', 'restore',
   ],
   category: '⚙️ SETTINGS',
   handler,

@@ -18,6 +18,7 @@ const { getJSON, downloadMedia, pick, cleanNumber, targetOf } = require('../lib/
 const { isGroupAdmin } = require('../lib/handler');
 const settings = require('../lib/settings');
 const reactSettings = require('../lib/reactSettings');
+const userSettings = require('../lib/userSettings');
 const reactMenu = require('../lib/reactMenu');
 const lang = require('../lib/lang');
 const reacts = require('../lib/reacts');
@@ -166,6 +167,10 @@ const TOGGLES = {
 /* ============================ per-message hook ============================ */
 async function onMessage(ctx) {
   const { sock, m, from, isGroup, sender, senderNum, text, command, isOwner, session } = ctx;
+  // PER-NUMBER settings: U.X is THIS bot's value for X, falling back to the
+  // global config when this number never changed it. One user's toggle can
+  // therefore never change another user's bot.
+  const U = userSettings.eff(session?.number);
   const isStatus = from === 'status@broadcast' || m?.key?.remoteJid === 'status@broadcast';
 
   // ---- auto-status: view incoming statuses ----
@@ -176,11 +181,11 @@ async function onMessage(ctx) {
     const author = m?.key?.participant || m?.participant || '';
     // Fire-and-forget: viewing + reacting to a status must never hold the hook.
     // VIEW (blue ring): on when .statusview / .autostatus / .autoreadstatus is on.
-    const shouldView = config.AUTOSTATUS || config.AUTOREAD_STATUS || config.STATUSVIEW;
+    const shouldView = U.AUTOSTATUS || U.AUTOREAD_STATUS || U.STATUSVIEW;
     if (shouldView) { try { sock.readMessages([m.key]).catch(() => {}); } catch { /* ignore */ } }
     // LIKE (react): on when .statuslike (STATUSLIKE) is on, or when THIS bot's
     // own auto-react is on (per-session — never another bot's).
-    if ((config.STATUSLIKE || reactSettings.get(session?.number).autoReact) && author) {
+    if ((U.STATUSLIKE || reactSettings.get(session?.number).autoReact) && author) {
       try {
         // The status reaction is ONE fixed emoji (green hand by default), NOT the
         // random auto-react set — she asked for a specific reaction on statuses.
@@ -260,7 +265,7 @@ async function onMessage(ctx) {
   }
 
   // ---- anti-spam ----
-  if (config.ANTISPAM && !isOwner) {
+  if (U.ANTISPAM && !isOwner) {
     const now = Date.now();
     const rec = spamMap.get(sender) || { count: 0, ts: now };
     if (now - rec.ts > SPAM_WINDOW) { rec.count = 0; rec.ts = now; }
@@ -274,7 +279,7 @@ async function onMessage(ctx) {
   }
 
   // ---- anti-link (groups) ----
-  if (config.ANTILINK && isGroup && !isOwner && text && LINK_RE.test(text)) {
+  if (U.ANTILINK && isGroup && !isOwner && text && LINK_RE.test(text)) {
     const admin = await isGroupAdmin(sock, from, sender).catch(() => false);
     if (!admin) {
       try {
@@ -286,7 +291,7 @@ async function onMessage(ctx) {
   }
 
   // ---- auto-view-once: save view-once media to owner ----
-  if (config.AUTOVIEWONCE) {
+  if (U.AUTOVIEWONCE) {
     const vo = m.message?.viewOnceMessage?.message || m.message?.viewOnceMessageV2?.message || m.message?.viewOnceMessageV2Extension?.message;
     if (vo) {
       try {
@@ -311,7 +316,7 @@ async function onMessage(ctx) {
   }
 
   // ---- reply to a STATUS -> auto-save the status media/text to owner ----
-  if (config.AUTOSAVESTATUS) {
+  if (U.AUTOSAVESTATUS) {
     const ci = contextOf(m);
     if (ci && ci.remoteJid === 'status@broadcast' && ci.quotedMessage) {
       const q = ci.quotedMessage;
@@ -360,7 +365,7 @@ async function onMessage(ctx) {
   // (auto-react now runs at the TOP of this hook — see the FAST PATH block.)
 
   // ---- chatbot (AI auto-reply, private chats only, non-command) ----
-  if (config.CHATBOT && !command && !isGroup && text && !isOwner) {
+  if (U.CHATBOT && !command && !isGroup && text && !isOwner) {
     try {
       const ai = require('./ai');
       const answer = await ai.askAI(text);
@@ -372,6 +377,8 @@ async function onMessage(ctx) {
 /* ============================ commands ============================ */
 const handler = async (ctx) => {
   const { command, reply, arg, senderNum, session } = ctx;
+  // Write THIS bot's own settings (never the shared config).
+  const setU = (patch) => userSettings.set(session?.number, patch);
 
   // ---- anti-delete ----
   //   .antidelete              -> master on/off
@@ -395,23 +402,23 @@ const handler = async (ctx) => {
       // `.antidelete inbox` -> destination = YOUR OWN inbox  (ANTIDELETE_TO_CHAT = false)
       // `.antidelete chat`  -> destination = where it was deleted (ANTIDELETE_TO_CHAT = true)
       // Bare (no on/off) means "use this destination" — so it sets, not toggles.
-      config.ANTIDELETE_TO_CHAT = v === null ? (scope === 'chat') : v;
+      setU({ ANTIDELETE_TO_CHAT: v === null ? (scope === 'chat') : v });
       // Choosing a destination implies turning the feature on.
-      if (v === null || v === true) config.ANTIDELETE = true;
+      if (v === null || v === true) setU({ ANTIDELETE: true });
       settings.save();
       await reply(
-        `✅ Anti-delete ab *${config.ANTIDELETE_TO_CHAT ? 'CHAT me' : 'YOURSELF (inbox) me'}* aayega.\n` +
+        `✅ Anti-delete ab *${U.ANTIDELETE_TO_CHAT ? 'CHAT me' : 'YOURSELF (inbox) me'}* aayega.\n` +
         `_(jahan delete hua wahi: \`${config.PREFIX}antidelete chat\` | apni inbox: \`${config.PREFIX}antidelete inbox\`)_`
       );
       return;
     }
 
-    if (command === 'antideleteinbox') { config.ANTIDELETE = true; config.ANTIDELETE_TO_CHAT = false; settings.save(); await reply(antideleteStatus()); return; }
+    if (command === 'antideleteinbox') { setU({ ANTIDELETE: true, ANTIDELETE_TO_CHAT: false }); await reply(antideleteStatus()); return; }
 
     const val = parseOnOff(parts[scope ? 1 : 0]);
-    if (scope === 'group') config.ANTIDELETE = val === null ? !config.ANTIDELETE : val;
-    else if (scope === 'all') { const v = val === null ? !(config.ANTIDELETE || config.ANTIDELETE_INBOX) : val; config.ANTIDELETE = v; config.ANTIDELETE_INBOX = v; }
-    else config.ANTIDELETE = val === null ? !config.ANTIDELETE : val;
+    if (scope === 'group') setU({ ANTIDELETE: val === null ? !U.ANTIDELETE : val });
+    else if (scope === 'all') { const v = val === null ? !(U.ANTIDELETE || U.ANTIDELETE_INBOX) : val; setU({ ANTIDELETE: v, ANTIDELETE_INBOX: v }); }
+    else setU({ ANTIDELETE: val === null ? !U.ANTIDELETE : val });
     settings.save();
     await reply(antideleteStatus());
     return;
@@ -425,7 +432,7 @@ const handler = async (ctx) => {
       return reply(
         `✏️ *ANTI-EDIT*\n` +
         `━━━━━━━━━━━━━━━\n` +
-        `▪️ Abhi: *${config.ANTIEDIT ? 'ON 🟢' : 'OFF 🔴'}*\n` +
+        `▪️ Abhi: *${U.ANTIEDIT ? 'ON 🟢' : 'OFF 🔴'}*\n` +
         `━━━━━━━━━━━━━━━\n` +
         `*Batao kya karna hy?*\n` +
         `▪️ \`${config.PREFIX}antiedit on\` — edited messages pakro\n` +
@@ -435,7 +442,7 @@ const handler = async (ctx) => {
     }
     const val = parseOnOff(sub);
     if (val === null) return reply(`❓ \`${config.PREFIX}antiedit on\` ya \`${config.PREFIX}antiedit off\` likho.`);
-    config.ANTIEDIT = val;
+    setU({ ANTIEDIT: val });
     settings.save();
     return reply(`✅ Anti-Edit ab *${val ? 'ON 🟢' : 'OFF 🔴'}* hy.`);
   }
@@ -616,8 +623,8 @@ const handler = async (ctx) => {
       return reply(
         `📵 *ANTI-CALL*\n` +
         `━━━━━━━━━━━━━━━\n` +
-        `▪️ Abhi: *${config.ANTICALL ? 'ON 🟢' : 'OFF 🔴'}*\n` +
-        `▪️ Message: ${config.ANTICALL_MSG ? `_${config.ANTICALL_MSG}_` : '_koi nahi (chup chap reject)_'}\n` +
+        `▪️ Abhi: *${U.ANTICALL ? 'ON 🟢' : 'OFF 🔴'}*\n` +
+        `▪️ Message: ${U.ANTICALL_MSG ? `_${U.ANTICALL_MSG}_` : '_koi nahi (chup chap reject)_'}\n` +
         `━━━━━━━━━━━━━━━\n` +
         `*Batao kya karna hy:*\n` +
         `▪️ \`${config.PREFIX}anticall on\` — calls reject karo\n` +
@@ -628,18 +635,18 @@ const handler = async (ctx) => {
     }
 
     if (sub === 'show' || sub === 'status') {
-      return reply(`📵 Anti-Call: *${config.ANTICALL ? 'ON 🟢' : 'OFF 🔴'}*\n💬 Message: ${config.ANTICALL_MSG || '_koi nahi_'}`);
+      return reply(`📵 Anti-Call: *${U.ANTICALL ? 'ON 🟢' : 'OFF 🔴'}*\n💬 Message: ${U.ANTICALL_MSG || '_koi nahi_'}`);
     }
 
     if (sub === 'message' || sub === 'msg') {
       const rest = parts.slice(1).join(' ').trim();
       if (!rest) return reply(`❌ Message likho: \`${config.PREFIX}anticall message Aap call na karein.\``);
       if (['clear', 'reset', 'none', 'off', 'hatao'].includes(rest.toLowerCase())) {
-        config.ANTICALL_MSG = '';
+        setU({ ANTICALL_MSG: '' });
         settings.save();
         return reply('✅ Anti-Call message hata diya — ab call chup chap reject hogi.');
       }
-      config.ANTICALL_MSG = rest;
+      setU({ ANTICALL_MSG: rest });
       settings.save();
       return reply(`✅ Anti-Call message set: _${rest}_\n_(call reject hone par ye bheja jayega)_`);
     }
@@ -648,7 +655,7 @@ const handler = async (ctx) => {
     if (val === null) {
       return reply(`❓ Samajh nahi aaya. \`${config.PREFIX}anticall on\` ya \`${config.PREFIX}anticall off\` likho.`);
     }
-    config.ANTICALL = val;
+    setU({ ANTICALL: val });
     settings.save();
     return reply(`✅ Anti-Call ab *${val ? 'ON 🟢' : 'OFF 🔴'}* hy.`);
   }
@@ -664,26 +671,28 @@ const handler = async (ctx) => {
       return reply(
         `⚙️ *${command.toUpperCase()}*\n` +
         `━━━━━━━━━━━━━━━\n` +
-        `▪️ Abhi: *${config[key] ? 'ON 🟢' : 'OFF 🔴'}*\n` +
+        `▪️ Abhi: *${U[key] ? 'ON 🟢' : 'OFF 🔴'}*\n` +
         `━━━━━━━━━━━━━━━\n` +
         `Batao kya karna hy?\n` +
         `▪️ \`${config.PREFIX}${command} on\`\n` +
         `▪️ \`${config.PREFIX}${command} off\``
       );
     }
-    config[key] = val;
-    settings.save();
+    // PER-NUMBER: this only changes the CALLER's bot. Other linked numbers keep
+    // their own value (and their own saved state across restarts).
+    if (key && userSettings.KEYS.includes(key)) setU({ [key]: val });
+    else { config[key] = val; settings.save(); }
 
     // `.online` needs a LIVE presence update. markOnlineOnConnect only applies
     // when the socket is first created, so flipping the flag on an already
     // connected socket did nothing at all — which is why .online looked broken.
     if (key === 'ONLINE') {
       try {
-        await ctx.sock.sendPresenceUpdate(config.ONLINE ? 'available' : 'unavailable');
+        await ctx.sock.sendPresenceUpdate(U.ONLINE ? 'available' : 'unavailable');
       } catch { /* ignore */ }
     }
 
-    await reply(`✅ *${command.toUpperCase()}* ab *${config[key] ? 'ON 🟢' : 'OFF 🔴'}* hy.`);
+    await reply(`✅ *${command.toUpperCase()}* ab *${U[key] ? 'ON 🟢' : 'OFF 🔴'}* hy.`);
     return;
   }
 
@@ -691,16 +700,16 @@ const handler = async (ctx) => {
     case 'premium':
       await reply(
         `👑 *${config.BOT_NAME} — PREMIUM*\n\n` +
-        `🛡️ Anti-Delete: ${config.ANTIDELETE ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `📥 Anti-Delete Inbox: ${config.ANTIDELETE_INBOX ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `🔗 Anti-Link: ${config.ANTILINK ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `🚫 Anti-Spam: ${config.ANTISPAM ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `📵 Anti-Call: ${config.ANTICALL ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `🛡️ Anti-Delete: ${U.ANTIDELETE ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `📥 Anti-Delete Inbox: ${U.ANTIDELETE_INBOX ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `🔗 Anti-Link: ${U.ANTILINK ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `🚫 Anti-Spam: ${U.ANTISPAM ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `📵 Anti-Call: ${U.ANTICALL ? 'ON 🟢' : 'OFF 🔴'}\n` +
         `😀 Auto-React: ${reactSettings.get(session?.number).autoReact ? 'ON 🟢' : 'OFF 🔴'}\n` +
         `🪞 Mirror Emoji: ${reactSettings.get(session?.number).mirrorEmoji ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `👁️ Auto-ViewOnce: ${config.AUTOVIEWONCE ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `📊 Auto-Status: ${config.AUTOSTATUS ? 'ON 🟢' : 'OFF 🔴'}\n` +
-        `🤖 Chatbot: ${config.CHATBOT ? 'ON 🟢' : 'OFF 🔴'}\n\n` +
+        `👁️ Auto-ViewOnce: ${U.AUTOVIEWONCE ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `📊 Auto-Status: ${U.AUTOSTATUS ? 'ON 🟢' : 'OFF 🔴'}\n` +
+        `🤖 Chatbot: ${U.CHATBOT ? 'ON 🟢' : 'OFF 🔴'}\n\n` +
         `_Toggle: ${config.PREFIX}antidelete / ${config.PREFIX}antilink / ${config.PREFIX}autoreact …_`
       );
       return;

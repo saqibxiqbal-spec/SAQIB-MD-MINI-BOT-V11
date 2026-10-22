@@ -12,12 +12,14 @@ const settings = require('./lib/settings');
 const prefixes = require('./lib/prefixes');
 const reacts = require('./lib/reacts');
 const reactSettings = require('./lib/reactSettings');
+const userSettings = require('./lib/userSettings');
 const bans = require('./lib/bans');
 const apikeys = require('./lib/apikeys');
 settings.load();
 prefixes.load();
 reacts.load();
 reactSettings.load();
+userSettings.load();
 bans.load();
 apikeys.load();
 const registry = require('./plugins/_registry');
@@ -431,10 +433,11 @@ selfheal.setNotifier(async (text) => {
           prefixes.loadMongo().catch(() => {}),
           reacts.loadMongo().catch(() => {}),
           reactSettings.loadMongo().catch(() => {}),
+          userSettings.loadMongo().catch(() => {}),
           bans.loadMongo().catch(() => {}),
           apikeys.loadMongo().catch(() => {}),
         ]);
-        console.log('[MONGO] settings, prefixes, reacts, react-settings, bans + api-keys loaded');
+        console.log('[MONGO] settings, prefixes, reacts, react-settings, user-settings, bans + api-keys loaded');
       }
     } else if (settings.remoteEnabled()) {
       const ok = await settings.loadRemote();
