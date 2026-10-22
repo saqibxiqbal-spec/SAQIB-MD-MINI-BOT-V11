@@ -4,6 +4,17 @@
 
 ---
 
+## ✅ FIXES APPLIED (commit `18375b6`, pushed to main)
+1. **`.song` / `.play` number collision FIXED** — jab `.song` poochta hai "1 = Audio / 2 = Video", ab `2` dabane par `.menu` ki category **nahi** khulti. Guard `lib/interactions` check karta hai aur stale menu clear kar deta hai. Test pass ✅.
+2. **Bot pic ab TOTAL menu ke sath ek hi message mein** — total `.menu` ka text 1022 chars (limit 1024) hai, aur `fitCaption()` footer trim karke hamesha ek hi caption mein bhejta hai. Alag pic nahi jayegi. ✅
+3. **Portal se leftover third-party script hataya** — `ninja-daytona-script.js` removed. ✅
+4. **Railway + Docker ab `start.sh` use karte hain** — local Mongo fallback support. ✅
+5. **`.env` ready bana diya** (`bot/.env`, gitignored) — sahi Mongo URI + generated `ADMIN_TOKEN` + GitHub token ke sath.
+
+**Boot test:** `35 plugins, 1880 commands`, portal OK, yt-dlp/ffmpeg OK, GitHub state fallback ne settings restore kar liye ✅.
+
+---
+
 ## ✅ Jo cheezein BILKUL theek hain (no problem)
 - **Code syntax:** saari `.js` files pass (`node --check`) — koi syntax error nahi.
 - **Live boot test:** bot successfully boot hua — `35 plugin files, 1880 commands`, web portal up, `yt-dlp` + `ffmpeg` bootstrap OK.
