@@ -146,6 +146,12 @@
         if (bn) bn.textContent = String(st.botName).toUpperCase();
       }
     }
+    var lg = $('legacyLink');
+    if (lg) {
+      lg.href = api('/legacy.html');
+      if (online) lg.setAttribute('data-ok', '1');
+      else lg.removeAttribute('data-ok');
+    }
   }
 
   var hintedOffline = false;
@@ -579,7 +585,10 @@
     if (legacy) {
       legacy.href = api('/legacy.html');
       legacy.addEventListener('click', function (e) {
-        if (!API_BASE) { e.preventDefault(); window.location.href = '/legacy.html'; }
+        if (!legacy.getAttribute('data-ok')) {
+          e.preventDefault();
+          toast('Classic portal sirf bot ke apne server par khulta hai.', 'info');
+        }
       });
     }
 
