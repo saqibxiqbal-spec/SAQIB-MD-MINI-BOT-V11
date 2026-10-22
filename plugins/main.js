@@ -13,6 +13,7 @@ const fs = require('fs');
 const { getJSON, formatDuration } = require('../lib/helpers');
 const { msgStore, aiCache } = require('../lib/cache');
 const menuReply = require('../lib/menuReply');
+const interactions = require('../lib/interactions');
 const fonts = require('./fonts');
 
 const startAt = Date.now();
@@ -109,12 +110,32 @@ function botPicBuffer() {
     return _picCache.buf;
   } catch { return null; }
 }
+/**
+ * WhatsApp image-caption limit. When a menu is a few characters over, we must
+ * NOT split the picture into a separate message (the owner wants the bot DP
+ * attached to the TOTAL menu in ONE message). Instead we drop the trailing
+ * footer lines (channel/group/credits) until the caption fits.
+ */
+const CAPTION_LIMIT = 1024;
+function fitCaption(text, limit = CAPTION_LIMIT) {
+  if (text.length <= limit) return text;
+  const lines = text.split('\n');
+  // Drop trailing lines (blank line, channel/group footer) until it fits.
+  while (lines.length > 1 && lines.join('\n').length > limit) lines.pop();
+  let out = lines.join('\n');
+  if (out.length > limit) out = out.slice(0, limit - 1) + '…';
+  return out;
+}
+
 async function sendMenu(ctx, text, opts = {}) {
   const buf = botPicBuffer();
   // 1) DP + full menu in ONE message when the caption fits.
-  if (buf && text.length <= 1024) {
+  //    `opts.fit` forces the single-message form (used by the TOTAL `.menu`
+  //    list): if the text is a little too long we trim the footer, never split.
+  if (buf && (text.length <= CAPTION_LIMIT || opts.fit)) {
+    const caption = text.length <= CAPTION_LIMIT ? text : fitCaption(text);
     try {
-      await ctx.send(ctx.from, { image: buf, caption: text }, { quoted: ctx.m });
+      await ctx.send(ctx.from, { image: buf, caption }, { quoted: ctx.m });
       return;
     } catch { /* fall through to the split form */ }
   }
@@ -154,7 +175,7 @@ function categoriesText() {
     }
     txt += `\n${bar}\n`;
     txt += `💡 *Reply with a number* (1-${cats.size}) to open that category\n`;
-    txt += `▸ ${config.PREFIX}menu <category>   •   ${config.PREFIX}menuall\n`;
+    txt += `▸ ${config.PREFIX}menu <cat> • ${config.PREFIX}menuall\n`;
     txt += `\n📢 ${config.PREFIX}channel  •  👥 ${config.PREFIX}group  •  ✨ _${config.BOT_NAME}_`;
     return txt;
   });
@@ -219,7 +240,7 @@ const handler = async (ctx) => {
         // Arm the NUMBERED reply: the user can just send 1, 2, 3… to open a
         // category (works for every number in the list).
         menuReply.arm(ctx.senderNum, ctx.session?.number, [...categories().keys()]);
-        return sendMenu(ctx, categoriesText());
+        return sendMenu(ctx, categoriesText(), { fit: true });
       }
       // FIX: a NUMBER after `.menu` (e.g. `.menu 1`) opens THAT numbered
       // category — exactly like replying "1" to the category list. Previously
@@ -391,6 +412,15 @@ async function onMessage(ctx) {
   // Never treat a status / channel post as a menu reply.
   const jid = ctx.from || '';
   if (jid === 'status@broadcast' || jid.endsWith('@broadcast') || jid.endsWith('@newsletter')) return;
+  // COLLISION GUARD — the `.song` / `.play` / `.wyr` prompts ask the user to
+  // reply "1" or "2". Those prompts are stored in lib/interactions. If one is
+  // pending, IT owns the number: a stale `.menu` category pick must NOT fire
+  // (that was the bug where replying "2" to `.song` opened menu category #2).
+  // We also clear the stale menu so it can never fire on a later number.
+  if (interactions.get(ctx.from, ctx.sender)) {
+    menuReply.clear(ctx.senderNum, ctx.session?.number);
+    return;
+  }
   const pick = menuReply.consume(ctx.senderNum, ctx.session?.number, ctx.text);
   if (!pick) return;
   if (pick.invalid) {
