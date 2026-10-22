@@ -22,6 +22,7 @@ bans.load();
 apikeys.load();
 const registry = require('./plugins/_registry');
 const bot = require('./lib/bot');
+const QRCode = require('qrcode');
 
 // ---------------------------------------------------------------------------
 // Load plugins
@@ -235,12 +236,16 @@ app.post('/api/pair/stream', async (req, res) => {
     if (closed) return;
     closed = true;
     bot.events.off('code', onCode);
+    bot.events.off('qr', onQr);
     bot.events.off('linking', onLinking);
     bot.events.off('paired', onPaired);
     bot.events.off('error', onError);
     try { res.end(); } catch { /* ignore */ }
   };
   const mine = (num) => !want || !num || String(num) === want;
+  // Raw QR string from Baileys — the portal turns it into a scannable image.
+  // Sent alongside the pairing code so the user can EITHER scan OR type.
+  const onQr = (e) => { if (!mine(e.number)) return; send({ status: 'qr', qr: e.qr, number: e.number }); };
   const onCode = (e) => { if (!mine(e.number)) return; codeSentToClient = true; send({ status: 'code', code: e.code, number: e.number }); };
   const onLinking = (e) => { if (!mine(e.number)) return; send({ status: 'linking', number: e.number, message: 'Code accepted — finishing the link...' }); };
   const onPaired = (e) => { if (!mine(e.number)) return; send({ status: 'paired', number: e.number }); setTimeout(cleanup, 1500); };
@@ -248,6 +253,7 @@ app.post('/api/pair/stream', async (req, res) => {
 
   res.on('close', cleanup);
   bot.events.on('code', onCode);
+  bot.events.on('qr', onQr);
   bot.events.on('linking', onLinking);
   bot.events.on('paired', onPaired);
   bot.events.on('error', onError);
@@ -256,8 +262,33 @@ app.post('/api/pair/stream', async (req, res) => {
   try {
     const code = await bot.requestPair(req.body?.number);
     if (!codeSentToClient) send({ status: 'code', code }); // fallback if the event was missed
+    // Replay the latest QR (it may have fired before this stream subscribed).
+    const sess = bot.sessions.get(want);
+    if (sess?.lastQr) send({ status: 'qr', qr: sess.lastQr, number: sess.number });
   } catch (e) {
     onError({ number: want, error: e?.message || 'Pairing fail ho gaya.' });
+  }
+});
+
+// Render any text (usually a Baileys QR string) as a scannable SVG QR code.
+// Server-side so the browser needs no QR library and nothing can break offline.
+app.get('/api/qr', async (req, res) => {
+  const text = String(req.query.text || req.query.data || '');
+  if (!text) return res.status(400).json({ ok: false, error: 'text required' });
+  if (text.length > 4096) return res.status(413).json({ ok: false, error: 'text too long' });
+  try {
+    const svg = await QRCode.toString(text, {
+      type: 'svg',
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: Math.min(720, Math.max(160, parseInt(req.query.size || '320', 10) || 320)),
+      color: { dark: '#05060a', light: '#ffffff' },
+    });
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(svg);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'qr render failed' });
   }
 });
 

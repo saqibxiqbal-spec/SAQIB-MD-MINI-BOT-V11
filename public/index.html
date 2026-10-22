@@ -144,15 +144,24 @@
   .bar{height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
   .bar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .5s ease}
 
-  .codebox{margin-top:22px;border-radius:20px;border:1px dashed rgba(255,209,102,.5);
-    background:linear-gradient(135deg,rgba(255,209,102,.09),rgba(124,92,255,.09));padding:clamp(18px,4.5vw,26px);text-align:center;display:none}
-  .codebox.show{display:block;animation:pop .4s ease}
+  .pairbox{margin-top:22px;border-radius:20px;border:1px dashed rgba(255,209,102,.5);
+    background:linear-gradient(135deg,rgba(255,209,102,.09),rgba(124,92,255,.09));
+    padding:clamp(16px,4vw,24px);display:none;grid-template-columns:auto 1fr;gap:clamp(16px,3vw,26px);align-items:center}
+  .pairbox.show{display:grid;animation:pop .4s ease}
+  @media(max-width:560px){.pairbox.show{grid-template-columns:1fr;text-align:center}}
   @keyframes pop{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-  .codebox .lbl{font-size:12.5px;color:var(--muted2);letter-spacing:.4px}
-  .code{font-size:clamp(30px,10vw,46px);font-weight:900;letter-spacing:clamp(4px,2vw,10px);color:#fff;font-family:var(--fm);
-    text-shadow:0 0 30px rgba(255,209,102,.65);margin:8px 0 6px;word-break:break-all}
-  .codebox .exp{font-size:12px;color:var(--warn)}
-  .copy{margin-top:14px;background:rgba(255,255,255,.09);color:var(--txt);box-shadow:none;padding:11px 18px;font-size:13px}
+  .pane{min-width:0}
+  .pane .lbl{font-size:12.5px;color:var(--muted2);letter-spacing:.4px;margin-bottom:10px;font-weight:700;text-transform:uppercase}
+  .qrwrap{background:#fff;border-radius:16px;padding:10px;width:190px;height:190px;margin:0 auto;display:grid;place-items:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);position:relative;overflow:hidden}
+  @media(max-width:560px){.qrwrap{width:170px;height:170px}}
+  .qrwrap img{width:100%;height:100%;display:block;image-rendering:pixelated}
+  .qrwrap .qspin{position:absolute;inset:0;display:grid;place-items:center;background:#fff;color:#666;font-size:12px}
+  .qrwrap.ready .qspin{display:none}
+  .code{font-size:clamp(28px,8vw,40px);font-weight:900;letter-spacing:clamp(3px,1.6vw,8px);color:#fff;font-family:var(--fm);
+    text-shadow:0 0 30px rgba(255,209,102,.65);margin:6px 0 6px;word-break:break-all}
+  .pane .exp{font-size:12px;color:var(--warn);min-height:16px}
+  .copy{margin-top:12px;background:rgba(255,255,255,.09);color:var(--txt);box-shadow:none;padding:11px 18px;font-size:13px}
   .copy:hover{background:rgba(255,255,255,.16)}
 
   .msg{margin-top:16px;font-size:13.5px;padding:13px 15px;border-radius:13px;display:none;line-height:1.5}
@@ -315,7 +324,7 @@
     <div class="pairgrid">
       <div class="card reveal">
         <h3>🔗 Link Your WhatsApp</h3>
-        <p class="sub">Apna WhatsApp number country code ke sath likho aur 8-digit pairing code lo. Koi QR scan nahi — sirf code type karo. <b>Ek bot par 500 tak numbers link ho sakte hain.</b></p>
+        <p class="sub">Apna WhatsApp number country code ke sath likho — <b>QR scan karo YA 8-digit pairing code type karo</b>, dono ek sath milte hain. <b>Ek bot par 500 tak numbers link ho sakte hain.</b></p>
 
         <label for="num">WhatsApp Number (country code ke sath)</label>
         <div class="field">
@@ -335,19 +344,27 @@
         </div>
 
         <div id="msg" class="msg"></div>
-
-        <div id="codebox" class="codebox">
-          <div class="lbl">Aapka Pairing Code</div>
-          <div id="code" class="code">----</div>
-          <div class="exp" id="exp"></div>
-          <button id="copyBtn" class="btn copy">📋 Copy Code</button>
+        <div id="pairbox" class="pairbox">
+          <div class="pane">
+            <div class="lbl">📷 Scan QR</div>
+            <div class="qrwrap" id="qrwrap">
+              <div class="qspin">QR load ho raha hy…</div>
+              <img id="qrImg" alt="WhatsApp pairing QR code" />
+            </div>
+            <div class="exp" id="qrExp" style="text-align:center;margin-top:10px"></div>
+          </div>
+          <div class="pane" style="text-align:center">
+            <div class="lbl">🔢 Ya Pairing Code</div>
+            <div id="code" class="code">----</div>
+            <div class="exp" id="exp"></div>
+            <button id="copyBtn" class="btn copy">📋 Copy Code</button>
+          </div>
         </div>
-
-        <div class="howto">
+<div class="howto">
           <div class="row"><span class="n">1</span><span>WhatsApp kholo ➜ <b>Settings</b> ➜ <b>Linked Devices</b></span></div>
           <div class="row"><span class="n">2</span><span><b>Link a Device</b> par tap karo</span></div>
-          <div class="row"><span class="n">3</span><span><b>"Link with phone number instead"</b> chuno</span></div>
-          <div class="row"><span class="n">4</span><span>Ye 8-digit code type karo ✅</span></div>
+          <div class="row"><span class="n">3</span><span><b>QR scan karo</b> — ya <b>"Link with phone number instead"</b> chuno</span></div>
+          <div class="row"><span class="n">4</span><span>QR scan ho jaye, ya 8-digit code type karo ✅</span></div>
         </div>
       </div>
 
@@ -606,7 +623,12 @@ $('pairBtn').addEventListener('click', async () => {
   if (number.length < 8) return showMsg('❌ Sahi number likho (country code ke sath).', 'err');
   const btn = $('pairBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Wait…';
-  $('codebox').classList.remove('show');
+  $('pairbox').classList.remove('show');
+  $('qrwrap').classList.remove('ready');
+  $('qrImg').removeAttribute('src');
+  $('qrExp').textContent = '';
+  $('code').textContent = '----';
+  $('exp').textContent = '';
   $('msg').className = 'msg';
   $('progress').classList.add('show');
   setStep(1, 'active');
@@ -627,9 +649,19 @@ $('pairBtn').addEventListener('click', async () => {
         const line = chunk.split('\n').find((l) => l.startsWith('data:'));
         if (!line) continue;
         let evt; try { evt = JSON.parse(line.slice(5).trim()); } catch { continue; }
-        if (evt.status === 'code' && evt.code) {
+        if (evt.status === 'qr' && evt.qr) {
+          const img = $('qrImg');
+          img.onload = () => $('qrwrap').classList.add('ready');
+          img.onerror = () => { $('qrExp').textContent = 'QR load nahi hua — pairing code use karo'; };
+          img.src = API + '/api/qr?size=360&text=' + encodeURIComponent(evt.qr);
+          $('pairbox').classList.add('show');
+          $('qrExp').textContent = 'QR har ~60s me refresh hota hy — turant scan karo';
+          setStep(2, 'done');
+          showMsg('📷 QR ready — WhatsApp se scan karo, ya neeche code type karo.', 'ok');
+          toast('QR ready — scan karo', 'ok');
+        } else if (evt.status === 'code' && evt.code) {
           $('code').textContent = evt.code;
-          $('codebox').classList.add('show');
+          $('pairbox').classList.add('show');
           btn.disabled = false; btn.innerHTML = 'Get New Code';
           setStep(2, 'done');
           showMsg('✅ Code ban gaya! WhatsApp me type karo.', 'ok');
@@ -703,6 +735,7 @@ $('sidCopy').addEventListener('click', () => { navigator.clipboard?.writeText($(
 /* ---------------- settings persistence ---------------- */
 async function refreshSettings() {
   const pill = $('setPill');
+  if (!getToken()) { pill.textContent = 'locked'; pill.style.color = '#f87171'; return; }
   try {
     const r = await fetch(API + '/api/settings?token=' + encodeURIComponent(getToken()));
     const d = await r.json();
